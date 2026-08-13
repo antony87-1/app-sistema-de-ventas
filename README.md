@@ -3,8 +3,8 @@
 Aplicación Android interna para registrar las operaciones del restaurante Kankachos Valeriano. La primera versión funcionará completamente sin internet, con Angular, Ionic, Capacitor y SQLite local.
 
 ## Estado
-
-Fase 5 completada y Fase 6 en curso: venta rápida ya permite preparar un borrador con productos, cantidades y adicionales y guardarlo transaccionalmente con precios congelados, auditoría e idempotencia. Todavía falta implementar su cobro y finalización; no existen credenciales predeterminadas.
+Aplicativo en desarrollo
+Venta rápida ya permite preparar un borrador con productos, cantidades y adicionales y guardarlo transaccionalmente con precios congelados, auditoría e idempotencia. Todavía falta implementar su cobro y finalización; no existen credenciales predeterminadas.
 
 El contexto permanente está en [`docs/CONTEXTO_PROYECTO.md`](docs/CONTEXTO_PROYECTO.md), la matriz de permisos en [`docs/AUTORIZACION.md`](docs/AUTORIZACION.md), las credenciales en [`docs/CREDENCIALES.md`](docs/CREDENCIALES.md), el contrato lógico aprobado en [`docs/ESQUEMA_LOGICO_SQLITE.md`](docs/ESQUEMA_LOGICO_SQLITE.md) y la decisión técnica aprobada en [`docs/SQLITE_Y_RESPALDOS.md`](docs/SQLITE_Y_RESPALDOS.md).
 
