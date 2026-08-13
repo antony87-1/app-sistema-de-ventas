@@ -11,6 +11,30 @@
 npm-debug.log
 yarn-error.log
 
+# Local environment files (commit only documented examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local databases and backups
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Android signing and machine-specific configuration
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+key.properties
+local.properties
+google-services.json
+
 # IDEs and editors
 .idea/
 .project
