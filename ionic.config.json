@@ -1,0 +1,7 @@
+{
+  "name": "kankachos-valeriano",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

@@ -1,0 +1,116 @@
+<section class="correction-shell">
+  <header>
+    <div>
+      <small>ADMINISTRACIÓN</small>
+      <h2>Correcciones económicas</h2>
+    </div>
+    <button type="button" (click)="load()">Actualizar</button>
+  </header>
+  <p class="notice">
+    El registro original no se edita ni se elimina. Esta acción crea una corrección relacionada,
+    movimientos compensatorios cuando corresponda y auditoría completa.
+  </p>
+  @if (status() === 'LOADING') {
+    <p>Cargando registros…</p>
+  } @else if (status() === 'ERROR') {
+    <p role="alert">No se pudieron cargar las correcciones.</p>
+  } @else {
+    <div class="correction-columns">
+      <form (submit)="$event.preventDefault(); create()">
+        <label
+          >Registro original<select
+            [value]="originalId()"
+            (change)="selectOriginal($any($event.target).value)"
+          >
+            @for (record of records(); track record.type + record.id) {
+              <option [value]="record.id">
+                {{ record.type }} · {{ record.label }} · {{ formatSoles(record.amountCents) }}
+              </option>
+            }
+          </select></label
+        >
+        <label
+          >Motivo obligatorio<textarea
+            rows="3"
+            maxlength="300"
+            [value]="reason()"
+            (input)="reason.set($any($event.target).value)"
+          ></textarea>
+        </label>
+        <fieldset>
+          <legend>Impacto en caja</legend>
+          <select [value]="cashImpact()" (change)="setCashImpact($any($event.target).value)">
+            <option value="SIN_EFECTO">Sin efecto</option>
+            <option value="SUMA">Sumar entrada</option>
+            <option value="RESTA">Registrar salida</option>
+          </select>
+          @if (cashImpact() !== 'SIN_EFECTO') {
+            <input
+              type="text"
+              inputmode="decimal"
+              placeholder="Monto S/"
+              [value]="cashAmount()"
+              (input)="cashAmount.set($any($event.target).value)"
+            /><select
+              [value]="paymentMethodId()"
+              (change)="paymentMethodId.set($any($event.target).value)"
+            >
+              @for (method of methods(); track method.id) {
+                <option [value]="method.id">{{ method.name }}</option>
+              }
+            </select>
+          }
+        </fieldset>
+        <fieldset>
+          <legend>Impacto en ventas</legend>
+          <select [value]="saleImpact()" (change)="setSaleImpact($any($event.target).value)">
+            <option value="SIN_EFECTO">Sin efecto</option>
+            <option value="SUMA">Sumar venta</option>
+            <option value="RESTA">Restar venta</option>
+          </select>
+          @if (saleImpact() !== 'SIN_EFECTO') {
+            <input
+              type="text"
+              inputmode="decimal"
+              placeholder="Monto S/"
+              [value]="saleAmount()"
+              (input)="saleAmount.set($any($event.target).value)"
+            /><select
+              [value]="saleJourneyId()"
+              (change)="saleJourneyId.set($any($event.target).value)"
+            >
+              @for (journey of journeys(); track journey.id) {
+                <option [value]="journey.id">{{ journey.businessDate }}</option>
+              }
+            </select>
+          }
+        </fieldset>
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+        @if (feedback()) {
+          <p class="success" role="status">{{ feedback() }}</p>
+        }
+        <button class="primary" type="submit" [disabled]="busy()">
+          Confirmar corrección compensatoria
+        </button>
+      </form>
+      <section>
+        <h3>Historial de correcciones</h3>
+        @if (corrections().length === 0) {
+          <p>Aún no existen correcciones.</p>
+        }
+        @for (item of corrections(); track item.id) {
+          <article class="history">
+            <strong>{{ item.originalType }} · {{ item.originalId }}</strong
+            ><span>{{ item.reason }}</span
+            ><small
+              >Caja: {{ item.cashImpact }} {{ formatSoles(item.cashAmountCents) }} · Venta:
+              {{ item.saleImpact }} {{ formatSoles(item.saleAmountCents) }}</small
+            ><small>{{ item.createdBy }} · {{ item.createdAtUtc }}</small>
+          </article>
+        }
+      </section>
+    </div>
+  }
+</section>

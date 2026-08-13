@@ -1,0 +1,248 @@
+<section class="scheduled-workspace" aria-labelledby="scheduled-title">
+  <header>
+    <div>
+      <small>PEDIDOS PROGRAMADOS</small>
+      <h1 id="scheduled-title">Registro y seguimiento</h1>
+    </div>
+    <button type="button" (click)="load()">Actualizar</button>
+  </header>
+
+  <div class="scheduled-columns">
+    <section class="scheduled-form">
+      <h2>Nuevo pedido</h2>
+      <div class="customer-grid">
+        <label
+          >Cliente<input
+            type="text"
+            [value]="customerName()"
+            (input)="customerName.set($any($event.target).value)"
+        /></label>
+        <label
+          >Teléfono<input
+            type="tel"
+            [value]="customerPhone()"
+            (input)="customerPhone.set($any($event.target).value)"
+        /></label>
+        <label
+          >Fecha y hora<input
+            type="datetime-local"
+            [value]="scheduledLocal()"
+            (input)="scheduledLocal.set($any($event.target).value)"
+        /></label>
+        <label
+          >Entrega<select
+            [value]="deliveryType()"
+            (change)="setDeliveryType($any($event.target).value)"
+          >
+            <option value="RECOJO">Recojo</option>
+            <option value="DOMICILIO">Domicilio</option>
+          </select></label
+        >
+        @if (deliveryType() === 'DOMICILIO') {
+          <label class="wide"
+            >Dirección<input
+              type="text"
+              [value]="address()"
+              (input)="address.set($any($event.target).value)"
+          /></label>
+        }
+        <label class="wide"
+          >Referencia <small>(opcional)</small
+          ><input
+            type="text"
+            [value]="reference()"
+            (input)="reference.set($any($event.target).value)"
+        /></label>
+      </div>
+      <h3>Agregar productos</h3>
+      <div class="product-buttons">
+        @for (product of products(); track product.id) {
+          @if (product.availability === 'DISPONIBLE') {
+            <button type="button" (click)="addProduct(product)">
+              <strong>{{ product.name }}</strong
+              ><span>{{ product.price }}</span>
+            </button>
+          }
+        }
+      </div>
+      <section class="custom-order-line" aria-labelledby="custom-line-title">
+        <h3 id="custom-line-title">Agregar pedido escrito</h3>
+        <p>Para enteros, tamaños o preparaciones que todavía no existen en el catálogo.</p>
+        <div>
+          <label
+            >Descripción<input
+              type="text"
+              maxlength="160"
+              placeholder="Ejemplo: Kankacho entero"
+              [value]="customDescription()"
+              (input)="customDescription.set($any($event.target).value)"
+          /></label>
+          <label
+            >Tamaño o presentación<input
+              type="text"
+              maxlength="80"
+              placeholder="Ejemplo: Entero grande"
+              [value]="customPresentation()"
+              (input)="customPresentation.set($any($event.target).value)"
+          /></label>
+          <label
+            >Cantidad<input
+              type="number"
+              min="1"
+              [value]="customQuantity()"
+              (input)="customQuantity.set($any($event.target).value)"
+          /></label>
+          <label
+            >Precio unitario S/<input
+              type="text"
+              inputmode="decimal"
+              placeholder="0.00"
+              [value]="customPriceSoles()"
+              (input)="customPriceSoles.set($any($event.target).value)"
+          /></label>
+        </div>
+        <button type="button" (click)="addCustomLine()">Agregar al pedido</button>
+      </section>
+      @for (line of lines(); track line.id) {
+        <article class="draft-line">
+          <div>
+            <strong>{{ line.quantity }} × {{ line.name }}</strong
+            ><span>{{ formatSoles(line.quantity * line.priceCents) }}</span>
+          </div>
+          @if (line.presentation) {
+            <small>{{ line.presentation }} · {{ formatSoles(line.priceCents) }} c/u</small>
+          }
+          <div class="line-controls">
+            <button type="button" (click)="changeQuantity(line.id, -1)">−</button
+            ><button type="button" (click)="changeQuantity(line.id, 1)">+</button>
+            @if (!line.custom) {
+              <button type="button" (click)="addonTarget.set(line.id)">+ adicional</button>
+            }
+          </div>
+          @for (addon of line.addons; track addon.id) {
+            <small
+              >{{ addon.quantity }} × {{ addon.name }} ·
+              {{ formatSoles(addon.quantity * addon.priceCents) }}</small
+            >
+          }
+          @if (addonTarget() === line.id) {
+            <div class="addon-buttons">
+              @for (addon of addons(); track addon.id) {
+                @if (addon.availability === 'DISPONIBLE') {
+                  <button type="button" (click)="addAddon(addon)">{{ addon.name }}</button>
+                }
+              }
+            </div>
+          }
+        </article>
+      }
+      <div class="draft-total">
+        <span>Total programado</span><strong>{{ formatSoles(draftTotalCents()) }}</strong>
+      </div>
+      <button class="primary" type="button" [disabled]="busy()" (click)="create()">
+        Registrar pedido
+      </button>
+    </section>
+
+    <section class="scheduled-list">
+      <h2>Pedidos</h2>
+      @if (status() === 'LOADING') {
+        <p>Cargando pedidos…</p>
+      } @else if (status() === 'ERROR') {
+        <p role="alert">No se pudo cargar la lista.</p>
+      } @else if (orders().length === 0) {
+        <p>Aún no hay pedidos programados.</p>
+      } @else {
+        <div class="order-buttons">
+          @for (order of orders(); track order.operationId) {
+            <button
+              type="button"
+              [class.active]="selectedId() === order.operationId"
+              (click)="select(order.operationId)"
+            >
+              <strong>{{ order.operationCode }} · {{ order.customerName }}</strong>
+              <span
+                >{{ order.scheduledLocal.replace('T', ' ') }} ·
+                {{ preparationLabel(order.preparationState) }}</span
+              >
+              <b>{{ formatSoles(order.balanceCents) }} pendiente</b>
+            </button>
+          }
+        </div>
+      }
+      @if (selected(); as order) {
+        <article class="order-detail">
+          <h3>{{ order.customerName }} · {{ order.customerPhone }}</h3>
+          <p><strong>Preparación:</strong> {{ preparationLabel(order.preparationState) }}</p>
+          <p><strong>Pago:</strong> {{ order.paymentState.toLowerCase().replaceAll('_', ' ') }}</p>
+          <dl>
+            <div>
+              <dt>Total</dt>
+              <dd>{{ formatSoles(order.totalCents) }}</dd>
+            </div>
+            <div>
+              <dt>Pagado</dt>
+              <dd>{{ formatSoles(order.paidCents) }}</dd>
+            </div>
+            <div>
+              <dt>Saldo</dt>
+              <dd>{{ formatSoles(order.balanceCents) }}</dd>
+            </div>
+          </dl>
+          <div class="order-lines">
+            <strong>Detalle solicitado</strong>
+            @for (line of order.lines; track $index) {
+              <p>
+                {{ line.quantity }} × {{ line.name }}
+                @if (line.presentation) {
+                  · {{ line.presentation }}
+                }
+                <b>{{ formatSoles(line.subtotalCents) }}</b>
+              </p>
+            }
+          </div>
+          @if (order.balanceCents > 0) {
+            <div class="advance-form">
+              <input
+                type="text"
+                inputmode="decimal"
+                placeholder="Monto"
+                [value]="advanceSoles()"
+                (input)="advanceSoles.set($any($event.target).value)"
+              /><select
+                [value]="advanceMethod()"
+                (change)="advanceMethod.set($any($event.target).value)"
+              >
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="YAPE">Yape</option></select
+              ><button type="button" [disabled]="busy()" (click)="registerAdvance()">
+                Registrar cobro
+              </button>
+            </div>
+          }
+          @if (nextPreparationState(); as next) {
+            <button
+              class="primary"
+              type="button"
+              [disabled]="busy()"
+              (click)="advancePreparation()"
+            >
+              Marcar {{ preparationLabel(next) }}
+            </button>
+          }
+          @if (order.paidCents > 0 && order.preparationState !== 'ENTREGADO') {
+            <p class="policy-note">
+              La anulación permanece bloqueada hasta definir la política del adelanto.
+            </p>
+          }
+        </article>
+      }
+    </section>
+  </div>
+  @if (error()) {
+    <p class="message error" role="alert">{{ error() }}</p>
+  }
+  @if (feedback()) {
+    <p class="message success" role="status">{{ feedback() }}</p>
+  }
+</section>

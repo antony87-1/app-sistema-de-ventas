@@ -1,0 +1,103 @@
+<ion-content [fullscreen]="true">
+  <main class="auth-shell wide">
+    <section class="brand-panel">
+      <p class="eyebrow">Kankachos Valeriano</p>
+      <h1>Preparar esta tablet</h1>
+      <p>Crea las dos cuentas locales. No se requiere internet.</p>
+    </section>
+    <ion-card>
+      <ion-card-header
+        ><ion-card-title>{{
+          recoveryCode() ? 'Guarda el código' : 'Configuración inicial'
+        }}</ion-card-title></ion-card-header
+      >
+      <ion-card-content>
+        @if (recoveryCode()) {
+          <div class="recovery-result">
+            <p>
+              Este código se mostrará una sola vez. Cópialo en papel y guárdalo fuera de la tablet.
+            </p>
+            <strong>{{ recoveryCode() }}</strong
+            ><ion-button expand="block" (click)="continueToLogin()">Ya guardé el código</ion-button>
+          </div>
+        } @else {
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <div class="form-grid">
+              <fieldset>
+                <legend>Administrador</legend>
+                <ion-item
+                  ><ion-input
+                    label="Usuario"
+                    labelPlacement="stacked"
+                    formControlName="administratorUsername"
+                /></ion-item>
+                <ion-item
+                  ><ion-input
+                    label="Nombre visible"
+                    labelPlacement="stacked"
+                    formControlName="administratorDisplayName"
+                /></ion-item>
+                <ion-item
+                  ><ion-input
+                    label="Contraseña"
+                    type="password"
+                    labelPlacement="stacked"
+                    formControlName="administratorPassword"
+                /></ion-item>
+                <ion-item
+                  ><ion-input
+                    label="Confirmar contraseña"
+                    type="password"
+                    labelPlacement="stacked"
+                    formControlName="administratorPasswordConfirmation"
+                /></ion-item>
+              </fieldset>
+              <fieldset>
+                <legend>Cajero</legend>
+                <ion-item
+                  ><ion-input
+                    label="Usuario"
+                    labelPlacement="stacked"
+                    formControlName="cashierUsername"
+                /></ion-item>
+                <ion-item
+                  ><ion-input
+                    label="Nombre visible"
+                    labelPlacement="stacked"
+                    formControlName="cashierDisplayName"
+                /></ion-item>
+                <ion-item
+                  ><ion-input
+                    label="Contraseña"
+                    type="password"
+                    labelPlacement="stacked"
+                    formControlName="cashierPassword"
+                /></ion-item>
+                <ion-item
+                  ><ion-input
+                    label="Confirmar contraseña"
+                    type="password"
+                    labelPlacement="stacked"
+                    formControlName="cashierPasswordConfirmation"
+                /></ion-item>
+              </fieldset>
+            </div>
+            <p class="hint">Cada contraseña debe tener entre 8 y 64 caracteres.</p>
+            @if (errorMessage()) {
+              <ion-text color="danger"
+                ><p role="alert">{{ errorMessage() }}</p></ion-text
+              >
+            }
+            <ion-button type="submit" expand="block" [disabled]="loading()">
+              @if (loading()) {
+                <ion-spinner name="crescent" />
+              } @else {
+                Crear cuentas
+              }
+            </ion-button>
+          </form>
+        }
+      </ion-card-content>
+    </ion-card>
+  </main>
+</ion-content>

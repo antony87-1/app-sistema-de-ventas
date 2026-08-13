@@ -1,0 +1,59 @@
+.table-admin {
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+.table-admin > header,
+form,
+article {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.table-admin > header {
+  justify-content: space-between;
+  align-items: center;
+}
+h1 {
+  margin: 0.15rem 0 0;
+}
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+input,
+button {
+  min-height: 44px;
+  border: 1px solid #d8c2aa;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  background: #fff;
+}
+.primary {
+  background: var(--ion-color-primary);
+  color: #fff;
+}
+.table-list {
+  display: grid;
+  gap: 0.65rem;
+}
+article {
+  background: #fff;
+  padding: 0.8rem;
+  border-radius: 12px;
+}
+article > div {
+  display: grid;
+  margin-right: auto;
+}
+article.inactive {
+  opacity: 0.6;
+}
+.error {
+  color: #b42318;
+}
+.success {
+  color: #157347;
+}

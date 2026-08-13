@@ -1,0 +1,44 @@
+<ion-content [fullscreen]="true"
+  ><main class="auth-shell">
+    <section class="brand-panel">
+      <p class="eyebrow">Kankachos Valeriano</p>
+      <h1>Bienvenido</h1>
+      <p>Ventas y caja, incluso sin internet.</p>
+    </section>
+    <ion-card
+      ><ion-card-header><ion-card-title>Iniciar sesión</ion-card-title></ion-card-header
+      ><ion-card-content
+        ><form [formGroup]="form" (ngSubmit)="submit()">
+          <ion-item
+            ><ion-input
+              label="Usuario"
+              labelPlacement="stacked"
+              autocomplete="username"
+              formControlName="username" /></ion-item
+          ><ion-item
+            ><ion-input
+              label="Contraseña"
+              labelPlacement="stacked"
+              type="password"
+              autocomplete="current-password"
+              formControlName="password"
+          /></ion-item>
+          @if (errorMessage()) {
+            <ion-text color="danger"
+              ><p role="alert">{{ errorMessage() }}</p></ion-text
+            >
+          }
+          <ion-button type="submit" expand="block" [disabled]="loading()">
+            @if (loading()) {
+              <ion-spinner name="crescent" />
+            } @else {
+              Ingresar
+            }</ion-button
+          ><ion-button fill="clear" expand="block" routerLink="/recuperar-acceso"
+            >Recuperar acceso de administrador</ion-button
+          >
+        </form></ion-card-content
+      ></ion-card
+    >
+  </main></ion-content
+>

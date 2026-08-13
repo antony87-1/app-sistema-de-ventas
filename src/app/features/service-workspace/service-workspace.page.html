@@ -1,0 +1,1165 @@
+<ion-content [fullscreen]="true">
+  @if (journeyStatus() !== 'OPEN_TODAY') {
+    <section class="journey-gate" role="dialog" aria-labelledby="journey-title" aria-modal="true">
+      <article>
+        @if (journeyStatus() === 'LOADING') {
+          <p class="journey-kicker">CAJA</p>
+          <h1 id="journey-title">Revisando jornada…</h1>
+          <p>Estamos verificando el estado guardado en este dispositivo.</p>
+        } @else if (journeyStatus() === 'NONE') {
+          @if (reopenCandidate()?.businessDate === journeyBusinessDate()) {
+            <p class="journey-kicker">JORNADA CERRADA</p>
+            <h1 id="journey-title">La jornada de hoy ya fue cerrada</h1>
+            <p>No se puede abrir otra jornada con la misma fecha.</p>
+            @if (canReopenJourney) {
+              <div class="exceptional-close">
+                <label>Motivo administrativo de la reapertura</label>
+                <textarea
+                  rows="3"
+                  maxlength="300"
+                  [value]="reopenReason()"
+                  (input)="setReopenReason($any($event.target).value)"
+                ></textarea>
+                <button
+                  type="button"
+                  class="exceptional-confirm"
+                  [disabled]="reopeningBusy()"
+                  (click)="reopenJourney()"
+                >
+                  {{ reopeningBusy() ? 'Reabriendo…' : 'Reabrir jornada' }}
+                </button>
+                @if (reopeningError()) {
+                  <p class="journey-error" role="alert">{{ reopeningError() }}</p>
+                }
+              </div>
+            } @else {
+              <p class="journey-detail">Solo el administrador puede reabrirla.</p>
+            }
+          } @else {
+            <p class="journey-kicker">{{ formatBusinessDate(journeyBusinessDate()) }}</p>
+            <h1 id="journey-title">Abrir jornada</h1>
+            <p>Indica cuánto efectivo hay en caja antes de comenzar la atención.</p>
+            <label for="initial-amount">Efectivo inicial</label>
+            <div class="money-input">
+              <span>S/</span
+              ><input
+                id="initial-amount"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0.00"
+                [value]="initialAmountSoles()"
+                [disabled]="openingBusy()"
+                (input)="setInitialAmount($any($event.target).value)"
+              />
+            </div>
+            <label for="opening-observation">Observación <small>(opcional)</small></label>
+            <textarea
+              id="opening-observation"
+              rows="2"
+              maxlength="240"
+              [value]="openingObservation()"
+              [disabled]="openingBusy()"
+              (input)="setOpeningObservation($any($event.target).value)"
+            ></textarea>
+            @if (openingError()) {
+              <p class="journey-error" role="alert">{{ openingError() }}</p>
+            }
+            <button
+              type="button"
+              class="open-journey-button"
+              [disabled]="openingBusy()"
+              (click)="openJourney()"
+            >
+              {{ openingBusy() ? 'Abriendo…' : 'Abrir jornada y comenzar' }}
+            </button>
+          }
+        } @else if (journeyStatus() === 'OPEN_PREVIOUS_DAY') {
+          <p class="journey-kicker danger">ATENCIÓN REQUERIDA</p>
+          <h1 id="journey-title">Jornada anterior pendiente</h1>
+          <p>
+            La jornada del <strong>{{ formatBusinessDate(journeyBusinessDate()) }}</strong> sigue
+            abierta. No se puede abrir una nueva hasta cerrarla.
+          </p>
+          <p class="journey-detail">Abierta por {{ journeyOpenedBy() }}.</p>
+          @if (pendingCorrection() ? canCorrectClose : canExceptionalClose) {
+            <div class="exceptional-close">
+              <h2>
+                {{
+                  pendingCorrection()
+                    ? 'Cierre corregido administrativo'
+                    : 'Cierre excepcional administrativo'
+                }}
+              </h2>
+              @if (pendingCorrection(); as correction) {
+                <p class="journey-detail">
+                  Reapertura: {{ correction.reopeningReason }}. El cierre anterior se conservará.
+                </p>
+              }
+              <label>Efectivo real contado</label>
+              <div class="money-input">
+                <span>S/</span
+                ><input
+                  type="text"
+                  inputmode="decimal"
+                  [value]="actualCashSoles()"
+                  (input)="setActualCash($any($event.target).value)"
+                />
+              </div>
+              <label>Justificación administrativa obligatoria</label>
+              <textarea
+                rows="3"
+                maxlength="300"
+                [value]="closeJustification()"
+                (input)="setCloseJustification($any($event.target).value)"
+              ></textarea>
+              <button type="button" class="exceptional-evaluate" (click)="loadCloseReadiness()">
+                Evaluar condiciones
+              </button>
+              @if (closeReadiness(); as readiness) {
+                @if (readiness.blockers.length > 0) {
+                  <ul class="exceptional-blockers">
+                    @for (blocker of readiness.blockers; track $index) {
+                      <li>{{ closeBlockerMessage(blocker) }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <button
+                    type="button"
+                    class="exceptional-confirm"
+                    [disabled]="closingBusy()"
+                    (click)="
+                      pendingCorrection()
+                        ? confirmCorrectedJourneyClose()
+                        : confirmExceptionalJourneyClose()
+                    "
+                  >
+                    {{
+                      closingBusy()
+                        ? 'Cerrando…'
+                        : pendingCorrection()
+                          ? 'Confirmar cierre corregido'
+                          : 'Confirmar cierre excepcional'
+                    }}
+                  </button>
+                }
+              }
+              @if (closeInputError()) {
+                <p class="journey-error" role="alert">{{ closeInputError() }}</p>
+              }
+              @if (closingFeedback()) {
+                <p class="close-ready-message" role="status">{{ closingFeedback() }}</p>
+              }
+            </div>
+          } @else {
+            <p class="journey-detail">
+              Solicita al administrador el
+              {{ pendingCorrection() ? 'cierre corregido' : 'cierre excepcional' }}.
+            </p>
+          }
+        } @else if (journeyStatus() === 'OPEN_FUTURE_DAY') {
+          <p class="journey-kicker danger">REVISAR FECHA DEL DISPOSITIVO</p>
+          <h1 id="journey-title">La jornada tiene una fecha futura</h1>
+          <p>
+            La jornada guardada corresponde al
+            <strong>{{ formatBusinessDate(journeyBusinessDate()) }}</strong
+            >. No se harán cambios automáticos.
+          </p>
+        } @else {
+          <p class="journey-kicker danger">CAJA NO DISPONIBLE</p>
+          <h1 id="journey-title">No pudimos revisar la jornada</h1>
+          <p>Comprueba el almacenamiento local e inténtalo nuevamente.</p>
+          <button type="button" class="open-journey-button" (click)="loadJourneyStatus()">
+            Reintentar
+          </button>
+        }
+      </article>
+    </section>
+  }
+  <main
+    class="workspace"
+    [class.tables-collapsed]="tablePanelCollapsed()"
+    [class.cash-active]="activeSection() === 'CAJA'"
+    [class.scheduled-active]="activeSection() === 'PROGRAMADOS'"
+    [class.journey-locked]="journeyStatus() !== 'OPEN_TODAY'"
+    [attr.inert]="journeyStatus() !== 'OPEN_TODAY' ? '' : null"
+  >
+    <header class="topbar">
+      <div>
+        <span class="restaurant">Kankachos Valeriano</span><strong>Atención de mesas</strong>
+      </div>
+      <nav>
+        <button
+          type="button"
+          [class.active]="activeSection() === 'MESAS' && serviceDestination() === 'TABLE'"
+          (click)="selectSection('MESAS')"
+        >
+          Mesas</button
+        ><button
+          type="button"
+          [class.active]="serviceDestination() === 'QUICK_SALE'"
+          (click)="startQuickSale()"
+        >
+          Venta rápida</button
+        ><button
+          type="button"
+          [class.active]="activeSection() === 'PROGRAMADOS'"
+          (click)="selectSection('PROGRAMADOS')"
+        >
+          Programados
+        </button>
+        @if (canViewReports) {
+          <button type="button" (click)="openReports()">Reportes</button>
+        }
+        @if (canManageTables) {
+          <button
+            type="button"
+            [class.active]="activeSection() === 'ADMIN_MESAS'"
+            (click)="selectSection('ADMIN_MESAS')"
+          >
+            Administrar mesas
+          </button>
+        }
+        <button
+          type="button"
+          [class.active]="activeSection() === 'CAJA'"
+          (click)="selectSection('CAJA')"
+        >
+          Caja
+        </button>
+        <button type="button" (click)="logout()">Cerrar sesión</button>
+      </nav>
+      <app-local-save-indicator />
+    </header>
+    @if (activeSection() === 'CAJA') {
+      <section class="cash-workspace" aria-labelledby="expense-title">
+        <header class="cash-heading">
+          <div>
+            <span class="journey-kicker">CAJA · JORNADA ABIERTA</span>
+            <h1 id="expense-title">Registrar gasto</h1>
+            <p>El gasto quedará asociado al usuario y a la jornada actual.</p>
+          </div>
+          <button type="button" (click)="selectSection('MESAS')">Volver a mesas</button>
+        </header>
+
+        <section class="cash-summary" aria-label="Resumen de caja">
+          @if (cashSummaryStatus() === 'LOADING') {
+            <p>Calculando resumen de la jornada…</p>
+          } @else if (cashSummaryStatus() === 'ERROR') {
+            <div class="cash-summary-error" role="alert">
+              <span>No se pudo actualizar el resumen.</span>
+              <button type="button" (click)="loadCashSummary()">Reintentar</button>
+            </div>
+          } @else if (cashSummary(); as summary) {
+            <article class="expected-cash">
+              <small>Efectivo esperado</small>
+              <strong>{{ formatSoles(summary.expectedCashCents) }}</strong>
+              <span>Fondo inicial {{ formatSoles(summary.initialCashCents) }}</span>
+            </article>
+            @for (method of summary.methods; track method.id) {
+              @if (method.code !== 'EFECTIVO') {
+                <article>
+                  <small>{{ method.name }}</small>
+                  <strong>{{ formatSoles(method.netCents) }}</strong>
+                  <span>Ingresos {{ formatSoles(method.inflowCents) }}</span>
+                </article>
+              }
+            }
+          }
+        </section>
+
+        <section class="cash-close-panel" aria-labelledby="close-title">
+          <header>
+            <div>
+              <small>CONTROL PREVIO</small>
+              <h2 id="close-title">Cierre de jornada</h2>
+            </div>
+            @if (closeReadiness()?.canClose) {
+              <strong class="close-ready">Condiciones completas</strong>
+            }
+          </header>
+          <div class="close-inputs">
+            <label>
+              <span>Efectivo real contado</span>
+              <div class="expense-money">
+                <b>S/</b>
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  placeholder="0.00"
+                  [value]="actualCashSoles()"
+                  (input)="setActualCash($any($event.target).value)"
+                />
+              </div>
+            </label>
+            <label>
+              <span>
+                {{
+                  pendingCorrection() ? 'Razón del cierre corregido' : 'Justificación de diferencia'
+                }}
+                <small>{{ pendingCorrection() ? '(obligatoria)' : '(si corresponde)' }}</small>
+              </span>
+              <input
+                type="text"
+                maxlength="300"
+                [value]="closeJustification()"
+                (input)="setCloseJustification($any($event.target).value)"
+              />
+            </label>
+            <button
+              type="button"
+              [disabled]="closeReadinessStatus() === 'LOADING'"
+              (click)="loadCloseReadiness()"
+            >
+              {{ closeReadinessStatus() === 'LOADING' ? 'Evaluando…' : 'Evaluar cierre' }}
+            </button>
+          </div>
+          @if (closeInputError()) {
+            <p class="expense-message error" role="alert">{{ closeInputError() }}</p>
+          } @else if (closeReadinessStatus() === 'ERROR') {
+            <p class="expense-message error" role="alert">
+              No se pudieron evaluar las condiciones de cierre.
+            </p>
+          } @else if (closeReadiness(); as readiness) {
+            @if (readiness.differenceType) {
+              <p class="cash-difference">
+                Resultado del conteo: <strong>{{ readiness.differenceType }}</strong> ·
+                {{ formatSoles(readiness.differenceCents || 0) }}
+              </p>
+            }
+            @if (readiness.blockers.length > 0) {
+              <div class="close-blockers" role="alert">
+                <strong>No se puede cerrar todavía:</strong>
+                <ul>
+                  @for (blocker of readiness.blockers; track $index) {
+                    <li>{{ closeBlockerMessage(blocker) }}</li>
+                  }
+                </ul>
+              </div>
+            } @else {
+              <div class="close-ready-message" role="status">
+                <p>
+                  Puedes cerrar la jornada. No existen mesas, cuentas ni diferencias sin justificar.
+                </p>
+                @if (pendingCorrection()) {
+                  @if (canCorrectClose) {
+                    <button
+                      type="button"
+                      [disabled]="closingBusy()"
+                      (click)="confirmCorrectedJourneyClose()"
+                    >
+                      {{ closingBusy() ? 'Cerrando…' : 'Confirmar cierre corregido' }}
+                    </button>
+                  } @else {
+                    <p>Solo el administrador puede confirmar el cierre corregido.</p>
+                  }
+                } @else {
+                  <button type="button" [disabled]="closingBusy()" (click)="confirmJourneyClose()">
+                    {{ closingBusy() ? 'Cerrando…' : 'Confirmar cierre de jornada' }}
+                  </button>
+                }
+              </div>
+            }
+          }
+          @if (closingFeedback()) {
+            <p class="expense-message success" role="status">{{ closingFeedback() }}</p>
+          }
+        </section>
+
+        @if (expenseOptionsStatus() === 'LOADING' || expenseOptionsStatus() === 'IDLE') {
+          <p class="expense-state">Cargando categorías y métodos de pago…</p>
+        } @else if (expenseOptionsStatus() === 'ERROR') {
+          <div class="expense-state" role="alert">
+            <p>No se pudieron cargar las opciones de gasto.</p>
+            <button type="button" (click)="loadExpenseOptions()">Reintentar</button>
+          </div>
+        } @else {
+          <form class="expense-form" (submit)="$event.preventDefault(); registerExpense()">
+            <label>
+              <span>Categoría</span>
+              <select
+                [value]="expenseCategoryId()"
+                [disabled]="expenseBusy()"
+                (change)="setExpenseCategory($any($event.target).value)"
+              >
+                @for (category of expenseCategories(); track category.id) {
+                  <option [value]="category.id">{{ category.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="wide">
+              <span>Descripción</span>
+              <input
+                type="text"
+                maxlength="160"
+                autocomplete="off"
+                placeholder="Ejemplo: compra de carbón"
+                [value]="expenseDescription()"
+                [disabled]="expenseBusy()"
+                (input)="setExpenseDescription($any($event.target).value)"
+              />
+            </label>
+            <label>
+              <span>Monto</span>
+              <div class="expense-money">
+                <b>S/</b
+                ><input
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="0.00"
+                  [value]="expenseAmountSoles()"
+                  [disabled]="expenseBusy()"
+                  (input)="setExpenseAmount($any($event.target).value)"
+                />
+              </div>
+            </label>
+            <fieldset>
+              <legend>Método de pago</legend>
+              <div class="payment-options">
+                @for (method of expensePaymentMethods(); track method.id) {
+                  <label [class.selected]="expensePaymentMethodId() === method.id">
+                    <input
+                      type="radio"
+                      name="expense-payment-method"
+                      [value]="method.id"
+                      [checked]="expensePaymentMethodId() === method.id"
+                      [disabled]="expenseBusy()"
+                      (change)="setExpensePaymentMethod(method.id)"
+                    />
+                    <span>{{ method.name }}</span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+            <label>
+              <span>Proveedor <small>(opcional)</small></span>
+              <input
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                [value]="expenseSupplier()"
+                [disabled]="expenseBusy()"
+                (input)="setExpenseSupplier($any($event.target).value)"
+              />
+            </label>
+            <label class="wide">
+              <span
+                >Nota
+                @if (expenseNoteRequired()) {
+                  <strong>Obligatoria para esta categoría</strong>
+                } @else {
+                  <small>(opcional)</small>
+                }
+              </span>
+              <textarea
+                rows="3"
+                maxlength="300"
+                [value]="expenseNote()"
+                [disabled]="expenseBusy()"
+                (input)="setExpenseNote($any($event.target).value)"
+              ></textarea>
+            </label>
+            @if (expenseError()) {
+              <p class="expense-message error wide" role="alert">{{ expenseError() }}</p>
+            }
+            @if (expenseFeedback()) {
+              <p class="expense-message success wide" role="status">{{ expenseFeedback() }}</p>
+            }
+            <button class="expense-submit wide" type="submit" [disabled]="expenseBusy()">
+              {{ expenseBusy() ? 'Registrando…' : 'Confirmar gasto' }}
+            </button>
+          </form>
+        }
+      </section>
+    }
+    @if (activeSection() === 'PROGRAMADOS') {
+      <app-scheduled-orders [products]="products()" [addons]="catalogAddons()" />
+    }
+    @if (activeSection() === 'ADMIN_MESAS') {
+      <app-table-administration (tablesChanged)="loadTables()" />
+    }
+    <section class="context-bar">
+      <span
+        ><small>AGREGANDO A</small
+        ><strong>{{
+          serviceDestination() === 'QUICK_SALE'
+            ? 'Venta rápida'
+            : (selectedTable()?.label || 'Selecciona una mesa') +
+              (selectedAccountLabel() ? ' · ' + selectedAccountLabel() : '')
+        }}</strong></span
+      >
+      <div>
+        @if (serviceDestination() === 'QUICK_SALE') {
+          <button type="button" (click)="useTableDestination()">Volver a mesas</button>
+        } @else {
+          <button type="button" (click)="startQuickSale()">Venta rápida</button>
+          <button type="button" (click)="changeTableSelection()">Cambiar mesa</button
+          ><button type="button" (click)="changeAccountSelection()">Cambiar cuenta</button>
+        }
+      </div>
+    </section>
+    <nav class="mobile-tabs" aria-label="Vista de atención">
+      <button [class.active]="mobileView() === 'MESAS'" (click)="selectMobileView('MESAS')">
+        Mesas</button
+      ><button
+        [class.active]="mobileView() === 'PRODUCTOS'"
+        (click)="selectMobileView('PRODUCTOS')"
+      >
+        Productos</button
+      ><button [class.active]="mobileView() === 'CUENTA'" (click)="selectMobileView('CUENTA')">
+        Cuenta
+      </button>
+    </nav>
+
+    <section class="panel products-panel" [class.mobile-active]="mobileView() === 'PRODUCTOS'">
+      <div class="panel-heading">
+        <div>
+          <span class="step">1</span>
+          <h2>Productos</h2>
+        </div>
+      </div>
+      <ion-searchbar
+        placeholder="Buscar producto"
+        [debounce]="200"
+        [disabled]="catalogStatus() !== 'READY'"
+        (ionInput)="setSearchTerm($event.detail.value)"
+      />
+      <div class="category-tabs">
+        @for (category of categories(); track category.code) {
+          <button
+            type="button"
+            [class.active]="selectedCategoryCode() === category.code"
+            (click)="selectCategory(category.code)"
+          >
+            {{ category.name }}
+          </button>
+        }
+      </div>
+      <div class="product-grid">
+        @if (catalogStatus() === 'LOADING') {
+          <p class="catalog-message">Cargando productos…</p>
+        } @else if (catalogStatus() === 'ERROR') {
+          <div class="catalog-message" role="alert">
+            <p>No se pudo cargar el catálogo local.</p>
+            <button type="button" (click)="loadCatalog()">Reintentar</button>
+          </div>
+        } @else {
+          @for (product of visibleProducts(); track product.id) {
+            <app-product-card
+              [product]="product"
+              [availabilityBusy]="availabilityBusyProductIds().has(product.id)"
+              (selected)="addProductToDestination($event)"
+              (availabilityChangeRequested)="changeProductAvailability($event)"
+            />
+          } @empty {
+            <p class="catalog-message">No hay productos para mostrar.</p>
+          }
+        }
+      </div>
+      @if (availabilityFeedback()) {
+        <p
+          class="availability-feedback"
+          [class.error]="availabilityFeedbackError()"
+          [attr.role]="availabilityFeedbackError() ? 'alert' : 'status'"
+        >
+          {{ availabilityFeedback() }}
+        </p>
+      }
+    </section>
+
+    <section class="panel account-panel" [class.mobile-active]="mobileView() === 'CUENTA'">
+      @if (serviceDestination() === 'QUICK_SALE') {
+        <div class="panel-heading">
+          <div>
+            <span class="step">2</span>
+            <div>
+              <h2>Venta rápida</h2>
+              <small>{{ persistedQuickSaleCode() || 'Borrador sin guardar' }}</small>
+            </div>
+          </div>
+          <app-status-badge
+            [label]="
+              quickSaleReadOnlyState() || (persistedQuickSaleCode() ? 'Guardada' : 'Borrador')
+            "
+            icon="✓"
+            tone="success"
+          />
+        </div>
+        @if (quickSaleAddonTarget(); as target) {
+          <div class="quick-addon-panel">
+            <strong>Agregar adicional</strong>
+            @for (addon of catalogAddons(); track addon.id) {
+              <button
+                type="button"
+                [disabled]="addon.availability === 'AGOTADO'"
+                (click)="addQuickSaleAddon(addon)"
+              >
+                {{ addon.name }} · {{ formatSoles(addon.priceCents) }}
+              </button>
+            }
+          </div>
+        }
+        @if (quickSalePriceTarget()) {
+          <section class="quick-price-editor" aria-labelledby="quick-price-title">
+            <strong id="quick-price-title">Editar precio de la línea</strong>
+            <div>
+              <button
+                type="button"
+                [class.active]="quickSalePriceType() === 'DESCUENTO'"
+                (click)="quickSalePriceType.set('DESCUENTO')"
+              >
+                Descuento
+              </button>
+              <button
+                type="button"
+                [class.active]="quickSalePriceType() === 'PRECIO_PERSONALIZADO'"
+                (click)="quickSalePriceType.set('PRECIO_PERSONALIZADO')"
+              >
+                Precio personalizado
+              </button>
+            </div>
+            <label>
+              Nuevo precio unitario
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [value]="quickSaleAppliedPriceSoles()"
+                (input)="quickSaleAppliedPriceSoles.set($any($event.target).value)"
+              />
+            </label>
+            <label>
+              Motivo obligatorio
+              <input
+                type="text"
+                maxlength="200"
+                [value]="quickSalePriceReason()"
+                (input)="quickSalePriceReason.set($any($event.target).value)"
+              />
+            </label>
+            <button type="button" class="confirm" (click)="applyQuickSalePriceAdjustment()">
+              Aplicar ajuste
+            </button>
+          </section>
+        }
+        @if (!persistedQuickSaleCode() && quickSaleLines().length === 0) {
+          <section class="pending-quick-sales" aria-labelledby="pending-quick-sales-title">
+            <strong id="pending-quick-sales-title">Ventas pendientes de cobro</strong>
+            @if (pendingQuickSalesStatus() === 'LOADING') {
+              <p>Cargando ventas guardadas…</p>
+            } @else if (pendingQuickSalesStatus() === 'ERROR') {
+              <p>No se pudieron consultar las ventas pendientes.</p>
+              <button type="button" (click)="loadPendingQuickSales()">Reintentar</button>
+            } @else {
+              @for (sale of pendingQuickSales(); track sale.operationId) {
+                <button type="button" (click)="resumePendingQuickSale(sale)">
+                  <span>{{ sale.operationCode }}</span>
+                  <strong>{{ formatSoles(sale.totalCents) }}</strong>
+                </button>
+              } @empty {
+                <p>No hay ventas rápidas pendientes.</p>
+              }
+            }
+          </section>
+          <section class="quick-sale-history" aria-labelledby="quick-sale-history-title">
+            <strong id="quick-sale-history-title">Historial de la jornada</strong>
+            @if (quickSaleHistoryStatus() === 'LOADING') {
+              <p>Cargando historial…</p>
+            } @else if (quickSaleHistoryStatus() === 'ERROR') {
+              <button type="button" (click)="loadQuickSaleHistory()">Reintentar historial</button>
+            } @else {
+              @for (sale of quickSaleHistory(); track sale.operationId) {
+                <button type="button" (click)="viewQuickSaleHistory(sale)">
+                  <span>{{ sale.operationCode }} · {{ sale.state }}</span>
+                  <strong>{{ formatSoles(sale.totalCents) }}</strong>
+                </button>
+              } @empty {
+                <p>Aún no hay ventas finalizadas o anuladas.</p>
+              }
+            }
+          </section>
+        }
+        <div class="account-lines quick-sale-lines">
+          @for (line of quickSaleLines(); track line.draftId) {
+            <article>
+              <div>
+                <strong>{{ line.name }} × {{ line.quantity }}</strong
+                ><small>
+                  @if (line.priceAdjustment) {
+                    <s>{{ formatSoles(line.catalogPriceCents) }}</s>
+                    {{ formatSoles(line.priceCents) }} · {{ line.priceAdjustment.reason }}
+                  } @else {
+                    {{ formatSoles(line.priceCents) }} cada uno
+                  }
+                </small>
+              </div>
+              <b>{{ formatSoles(line.priceCents * line.quantity) }}</b>
+              @for (addon of line.addons; track addon.id) {
+                <div class="child">
+                  └ {{ addon.name }} × {{ addon.quantity }}
+                  <b>{{ formatSoles(addon.priceCents * addon.quantity) }}</b>
+                  @if (!persistedQuickSaleCode()) {
+                    <button
+                      type="button"
+                      (click)="changeQuickSaleAddonQuantity(line.draftId, addon.id, -1)"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      (click)="changeQuickSaleAddonQuantity(line.draftId, addon.id, 1)"
+                    >
+                      +
+                    </button>
+                  }
+                </div>
+              }
+              @if (!persistedQuickSaleCode()) {
+                <div class="line-actions">
+                  <button type="button" (click)="changeQuickSaleQuantity(line.draftId, -1)">
+                    −
+                  </button>
+                  <span>{{ line.quantity }}</span>
+                  <button type="button" (click)="changeQuickSaleQuantity(line.draftId, 1)">
+                    +
+                  </button>
+                  @if (line.allowsAddons) {
+                    <button type="button" class="text" (click)="selectAddonTarget(line.draftId)">
+                      Agregar adicional
+                    </button>
+                  }
+                  @if (line.allowsPriceChange) {
+                    <button
+                      type="button"
+                      class="text"
+                      (click)="selectQuickSalePriceTarget(line.draftId)"
+                    >
+                      Editar precio
+                    </button>
+                  }
+                  @if (line.priceAdjustment) {
+                    <button
+                      type="button"
+                      class="text"
+                      (click)="removeQuickSalePriceAdjustment(line.draftId)"
+                    >
+                      Quitar ajuste
+                    </button>
+                  }
+                </div>
+              }
+            </article>
+          } @empty {
+            <p class="catalog-message">Selecciona productos para preparar la venta rápida.</p>
+          }
+        </div>
+        <footer class="account-footer">
+          <dl>
+            <div class="balance">
+              <dt>Total</dt>
+              <dd>{{ formatSoles(quickSaleTotalCents()) }}</dd>
+            </div>
+          </dl>
+          @if (quickSaleError()) {
+            <p class="expense-message error" role="alert">{{ quickSaleError() }}</p>
+          }
+          @if (quickSaleFeedback()) {
+            <p class="expense-message success" role="status">{{ quickSaleFeedback() }}</p>
+          }
+          <div class="primary-actions">
+            @if (persistedQuickSaleCode() && !quickSaleFinalized()) {
+              <section class="quick-payment" aria-labelledby="quick-payment-title">
+                <strong id="quick-payment-title">Cobrar venta</strong>
+                <div class="quick-payment-methods" role="group" aria-label="Método de pago">
+                  <button
+                    type="button"
+                    [class.active]="quickSalePaymentMethod() === 'EFECTIVO'"
+                    (click)="setQuickSalePaymentMethod('EFECTIVO')"
+                  >
+                    Efectivo
+                  </button>
+                  <button
+                    type="button"
+                    [class.active]="quickSalePaymentMethod() === 'YAPE'"
+                    (click)="setQuickSalePaymentMethod('YAPE')"
+                  >
+                    Yape
+                  </button>
+                  <button
+                    type="button"
+                    [class.active]="quickSalePaymentMethod() === 'COMBINADO'"
+                    (click)="setQuickSalePaymentMethod('COMBINADO')"
+                  >
+                    Efectivo + Yape
+                  </button>
+                </div>
+                @if (quickSalePaymentMethod() === 'EFECTIVO') {
+                  <label>
+                    Efectivo recibido
+                    <input
+                      type="number"
+                      inputmode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      [value]="quickSaleReceivedSoles()"
+                      (input)="setQuickSaleReceived($any($event.target).value)"
+                    />
+                  </label>
+                } @else if (quickSalePaymentMethod() === 'YAPE') {
+                  <p>Confirma visualmente el pago en Yape antes de continuar.</p>
+                } @else {
+                  <label>
+                    Importe pagado por Yape
+                    <input
+                      type="number"
+                      inputmode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      [value]="quickSaleYapeSoles()"
+                      (input)="quickSaleYapeSoles.set($any($event.target).value)"
+                    />
+                  </label>
+                  <label>
+                    Efectivo recibido para cubrir el saldo
+                    <input
+                      type="number"
+                      inputmode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      [value]="quickSaleReceivedSoles()"
+                      (input)="setQuickSaleReceived($any($event.target).value)"
+                    />
+                  </label>
+                  <p>Confirma Yape. El resto se aplica a efectivo y el vuelto sale solo de este.</p>
+                }
+                <ion-button
+                  expand="block"
+                  [disabled]="quickSaleBusy()"
+                  (click)="finalizeQuickSale()"
+                >
+                  {{ quickSaleBusy() ? 'Cobrando…' : 'Cobrar y finalizar' }}
+                </ion-button>
+              </section>
+              <section class="quick-cancellation" aria-labelledby="quick-cancellation-title">
+                <strong id="quick-cancellation-title">Anular venta sin cobrar</strong>
+                <label>
+                  Motivo obligatorio
+                  <input
+                    type="text"
+                    maxlength="200"
+                    [value]="quickSaleCancellationReason()"
+                    (input)="quickSaleCancellationReason.set($any($event.target).value)"
+                  />
+                </label>
+                <button type="button" [disabled]="quickSaleBusy()" (click)="cancelQuickSale()">
+                  Anular venta pendiente
+                </button>
+              </section>
+            } @else if (quickSaleFinalized()) {
+              <ion-button expand="block" (click)="newQuickSaleDraft()"
+                >Nueva venta rápida</ion-button
+              >
+            } @else {
+              <ion-button
+                expand="block"
+                [disabled]="quickSaleBusy() || quickSaleLines().length === 0"
+                (click)="confirmQuickSaleDraft()"
+              >
+                {{ quickSaleBusy() ? 'Guardando…' : 'Guardar venta rápida' }}
+              </ion-button>
+            }
+          </div>
+        </footer>
+      } @else {
+        <div class="panel-heading">
+          <div>
+            <span class="step">2</span>
+            <div>
+              <h2>Cuenta actual</h2>
+              <small
+                >{{ selectedTable()?.joinedLabel || selectedTable()?.label || 'Selecciona una mesa'
+                }}{{ selectedAccountLabel() ? ' · ' + selectedAccountLabel() : '' }}</small
+              >
+            </div>
+          </div>
+          @if (selectedTableAccountId()) {
+            <app-status-badge label="Cuenta abierta" icon="✓" tone="neutral" />
+          }
+        </div>
+        @if (!selectedTable()) {
+          <div class="empty-state"><p>Selecciona una mesa para ver o abrir su cuenta.</p></div>
+        } @else if (!selectedTableAccountId()) {
+          <div class="empty-state">
+            <p>{{ selectedTable()?.label }} está disponible.</p>
+            <ion-button expand="block" [disabled]="tableAccountBusy()" (click)="openTableAccount()">
+              {{ tableAccountBusy() ? 'Abriendo…' : 'Abrir Cuenta A' }}
+            </ion-button>
+          </div>
+        } @else {
+          <div class="quick-addon-panel">
+            @for (account of selectedTable()?.accounts; track account.operationId) {
+              <button
+                type="button"
+                [class.active]="selectedTableAccountId() === account.operationId"
+                (click)="selectTableAccount(account.operationId, account.label)"
+              >
+                {{ account.label }}
+              </button>
+            }
+            @if (canCreateAccount()) {
+              <button type="button" [disabled]="tableAccountBusy()" (click)="openTableAccount()">
+                Abrir Cuenta B
+              </button>
+            } @else {
+              <small>Esta mesa alcanzó el máximo de dos cuentas abiertas.</small>
+            }
+          </div>
+          @if (tableAccount(); as account) {
+            <div class="quick-addon-panel">
+              <strong>Agregar esta cuenta a otra mesa</strong>
+              @for (table of availableTablesToLink(); track table.id) {
+                <button
+                  type="button"
+                  [disabled]="tableMutationBusy()"
+                  (click)="linkSelectedAccountToTable(table.id)"
+                >
+                  + {{ table.label }}
+                </button>
+              }
+              @for (table of account.linkedTables; track table.id) {
+                <button
+                  type="button"
+                  [disabled]="tableMutationBusy()"
+                  (click)="unlinkSelectedAccountTable(table.id)"
+                >
+                  Separar {{ table.name }}
+                </button>
+              }
+            </div>
+            <div class="account-lines">
+              @for (line of account.lines; track line.detailId) {
+                <article>
+                  <div>
+                    <strong>{{ line.name }} × {{ line.quantity }}</strong
+                    ><small
+                      >{{ line.serviceState === 'SERVIDO' ? 'Servido' : 'Pendiente de servir' }} ·
+                      {{ line.paidQuantity }} pagados</small
+                    >
+                  </div>
+                  <b>{{ formatSoles(line.subtotalCents) }}</b>
+                  @for (addon of line.addons; track addon.detailId) {
+                    <div class="child">
+                      └ {{ addon.name }} × {{ addon.quantity }}
+                      <b>{{ formatSoles(addon.subtotalCents) }}</b>
+                    </div>
+                  }
+                  @if (line.serviceState === 'PENDIENTE' && line.paidQuantity === 0) {
+                    <div class="line-actions">
+                      <button
+                        type="button"
+                        [disabled]="tableMutationBusy()"
+                        (click)="changeTableLineQuantity(line.detailId, line.quantity - 1)"
+                      >
+                        −
+                      </button>
+                      <span>{{ line.quantity }}</span>
+                      <button
+                        type="button"
+                        [disabled]="tableMutationBusy()"
+                        (click)="changeTableLineQuantity(line.detailId, line.quantity + 1)"
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        class="text"
+                        [disabled]="tableMutationBusy()"
+                        (click)="markTableLineServed(line.detailId)"
+                      >
+                        Marcar servido
+                      </button>
+                    </div>
+                    @if (line.allowsAddons) {
+                      <div class="quick-addon-panel">
+                        @for (addon of catalogAddons(); track addon.id) {
+                          <button
+                            type="button"
+                            [disabled]="tableMutationBusy() || addon.availability === 'AGOTADO'"
+                            (click)="addAddonToTableLine(line.detailId, addon)"
+                          >
+                            + {{ addon.name }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  }
+                </article>
+              } @empty {
+                <p class="catalog-message">
+                  Selecciona productos para agregarlos directamente a {{ selectedAccountLabel() }}.
+                </p>
+              }
+            </div>
+            <footer class="account-footer">
+              <dl>
+                <div>
+                  <dt>Total consumido</dt>
+                  <dd>{{ formatSoles(account.totalCents) }}</dd>
+                </div>
+                <div>
+                  <dt>Total pagado</dt>
+                  <dd>{{ formatSoles(account.paidCents) }}</dd>
+                </div>
+                <div class="balance">
+                  <dt>Saldo pendiente</dt>
+                  <dd>{{ formatSoles(account.balanceCents) }}</dd>
+                </div>
+              </dl>
+              @if (account.balanceCents > 0) {
+                <section class="quick-payment" aria-labelledby="table-payment-title">
+                  <strong id="table-payment-title">Seleccionar productos para cobrar</strong>
+                  @for (item of tablePayableItems(); track item.detailId) {
+                    <div class="line-actions">
+                      <span>{{ item.name }} · pendientes {{ item.pendingQuantity }}</span>
+                      <button
+                        type="button"
+                        (click)="changeTablePaymentSelection(item.detailId, -1)"
+                      >
+                        −
+                      </button>
+                      <b>{{ tablePaymentSelection()[item.detailId] || 0 }}</b>
+                      <button type="button" (click)="changeTablePaymentSelection(item.detailId, 1)">
+                        +
+                      </button>
+                    </div>
+                  }
+                  <strong>Total seleccionado: {{ formatSoles(tablePaymentTotalCents()) }}</strong>
+                  <div
+                    class="quick-payment-methods"
+                    role="group"
+                    aria-label="Método del cobro separado"
+                  >
+                    <button
+                      type="button"
+                      [class.active]="tablePaymentMethod() === 'EFECTIVO'"
+                      (click)="setTablePaymentMethod('EFECTIVO')"
+                    >
+                      Efectivo
+                    </button>
+                    <button
+                      type="button"
+                      [class.active]="tablePaymentMethod() === 'YAPE'"
+                      (click)="setTablePaymentMethod('YAPE')"
+                    >
+                      Yape
+                    </button>
+                    <button
+                      type="button"
+                      [class.active]="tablePaymentMethod() === 'COMBINADO'"
+                      (click)="setTablePaymentMethod('COMBINADO')"
+                    >
+                      Efectivo + Yape
+                    </button>
+                  </div>
+                  @if (tablePaymentMethod() === 'EFECTIVO') {
+                    <label
+                      >Efectivo recibido<input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [value]="tableCashReceivedSoles()"
+                        (input)="tableCashReceivedSoles.set($any($event.target).value)"
+                    /></label>
+                  } @else if (tablePaymentMethod() === 'COMBINADO') {
+                    <label
+                      >Parte por Yape<input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [value]="tableYapeSoles()"
+                        (input)="tableYapeSoles.set($any($event.target).value)"
+                    /></label>
+                    <label
+                      >Efectivo recibido<input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [value]="tableCashReceivedSoles()"
+                        (input)="tableCashReceivedSoles.set($any($event.target).value)"
+                    /></label>
+                  } @else {
+                    <p>Confirma visualmente el pago en Yape.</p>
+                  }
+                  <ion-button
+                    expand="block"
+                    [disabled]="tablePaymentBusy() || tablePaymentTotalCents() === 0"
+                    (click)="confirmTablePayment()"
+                    >{{
+                      tablePaymentBusy() ? 'Cobrando…' : 'Confirmar cobro seleccionado'
+                    }}</ion-button
+                  >
+                </section>
+              } @else if (account.lines.length > 0) {
+                <ion-button
+                  expand="block"
+                  [disabled]="tablePaymentBusy()"
+                  (click)="finalizeTableAttention()"
+                  >Finalizar atención</ion-button
+                >
+              }
+              @if (tablePaymentFeedback()) {
+                <p class="expense-message" role="status">{{ tablePaymentFeedback() }}</p>
+              }
+            </footer>
+          }
+        }
+        @if (tableAccountError()) {
+          <p class="expense-message error" role="alert">{{ tableAccountError() }}</p>
+        }
+      }
+    </section>
+
+    <section class="panel tables-panel" [class.mobile-active]="mobileView() === 'MESAS'">
+      <div class="panel-heading">
+        <div>
+          <span class="step">3</span>
+          <h2>Mesas</h2>
+        </div>
+        <button type="button" class="collapse" (click)="toggleTablePanel()">
+          {{ tablePanelCollapsed() ? 'Mostrar' : 'Contraer' }}
+        </button>
+      </div>
+      @if (!tablePanelCollapsed()) {
+        @if (tablesStatus() === 'LOADING') {
+          <div class="empty-state"><p>Cargando mesas…</p></div>
+        } @else if (tablesStatus() === 'ERROR') {
+          <div class="empty-state">
+            <p>No se pudieron cargar las mesas.</p>
+            <button type="button" (click)="loadTables()">Reintentar</button>
+          </div>
+        } @else if (tables().length === 0) {
+          <div class="empty-state"><p>Aún no hay mesas activas configuradas.</p></div>
+        } @else {
+          <div class="table-list">
+            @for (table of tables(); track table.id) {
+              <app-table-card
+                [table]="table"
+                [selected]="selectedTableId() === table.id"
+                (activate)="selectTable($event)"
+              />
+            }
+          </div>
+        }
+      }
+    </section>
+    @if (tablePanelCollapsed()) {
+      <button type="button" class="restore-tables" (click)="toggleTablePanel()">
+        Mesas ({{ tables().length }})
+      </button>
+    }
+  </main>
+</ion-content>

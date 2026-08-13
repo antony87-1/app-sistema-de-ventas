@@ -1,0 +1,60 @@
+<ion-content [fullscreen]="true"
+  ><main class="auth-shell">
+    <section class="brand-panel">
+      <p class="eyebrow">Acceso local</p>
+      <h1>Recuperar administrador</h1>
+      <p>Usa el código guardado en papel. No se necesita internet.</p>
+    </section>
+    <ion-card
+      ><ion-card-header
+        ><ion-card-title>{{
+          newRecoveryCode() ? 'Guarda el código nuevo' : 'Cambiar contraseña'
+        }}</ion-card-title></ion-card-header
+      ><ion-card-content>
+        @if (newRecoveryCode()) {
+          <div class="recovery-result">
+            <p>El código anterior ya no funciona. Guarda este reemplazo:</p>
+            <strong>{{ newRecoveryCode() }}</strong
+            ><ion-button expand="block" (click)="goToLogin()">Ya guardé el código</ion-button>
+          </div>
+        } @else {
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <ion-item
+              ><ion-input
+                label="Código de recuperación"
+                labelPlacement="stacked"
+                formControlName="recoveryCode" /></ion-item
+            ><ion-item
+              ><ion-input
+                label="Contraseña nueva"
+                labelPlacement="stacked"
+                type="password"
+                formControlName="newPassword" /></ion-item
+            ><ion-item
+              ><ion-input
+                label="Confirmar contraseña"
+                labelPlacement="stacked"
+                type="password"
+                formControlName="confirmation"
+            /></ion-item>
+            <p class="hint">Entre 8 y 64 caracteres.</p>
+            @if (errorMessage()) {
+              <ion-text color="danger"
+                ><p role="alert">{{ errorMessage() }}</p></ion-text
+              >
+            }
+            <ion-button type="submit" expand="block" [disabled]="loading()">
+              @if (loading()) {
+                <ion-spinner name="crescent" />
+              } @else {
+                Recuperar acceso
+              }</ion-button
+            ><ion-button fill="clear" expand="block" routerLink="/login"
+              >Volver al login</ion-button
+            >
+          </form>
+        }
+      </ion-card-content></ion-card
+    >
+  </main></ion-content
+>

@@ -1,0 +1,469 @@
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/display.css';
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/float-elements.css';
+@import '@ionic/angular/css/text-alignment.css';
+@import '@ionic/angular/css/text-transformation.css';
+@import '@ionic/angular/css/flex-utils.css';
+
+.workspace.cash-active > :not(.topbar):not(.cash-workspace) {
+  display: none;
+}
+
+.pending-quick-sales,
+.quick-sale-history,
+.quick-payment {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.8rem;
+  border: 1px solid #ead8c7;
+  background: #fffaf5;
+}
+.pending-quick-sales > button,
+.quick-sale-history > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d7c0ac;
+  border-radius: 0.65rem;
+  background: white;
+  color: #492b1b;
+}
+.pending-quick-sales p,
+.quick-sale-history p,
+.quick-payment p {
+  margin: 0;
+  color: #6c4b39;
+  font-size: 0.85rem;
+}
+.quick-payment {
+  grid-column: 1 / -1;
+  border-radius: 0.85rem;
+}
+.quick-payment-methods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.quick-payment-methods button {
+  min-height: 2.75rem;
+  border: 1px solid #c9b3a0;
+  border-radius: 0.7rem;
+  background: white;
+  color: #492b1b;
+  font-weight: 700;
+}
+.quick-payment-methods button.active {
+  border-color: #8b3e18;
+  background: #8b3e18;
+  color: white;
+}
+.quick-payment label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+.quick-payment input {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid #c9b3a0;
+  border-radius: 0.65rem;
+  background: white;
+  font: inherit;
+}
+.quick-price-editor {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  border-bottom: 1px solid #ead8c7;
+  background: #fff7ef;
+}
+.quick-price-editor > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.quick-price-editor button,
+.quick-price-editor input {
+  min-height: 2.65rem;
+  border: 1px solid #c9b3a0;
+  border-radius: 0.6rem;
+  background: white;
+  font: inherit;
+}
+.quick-price-editor button.active,
+.quick-price-editor button.confirm {
+  background: #8b3e18;
+  color: white;
+}
+.quick-price-editor label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 700;
+}
+.quick-cancellation {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border: 1px solid #e2b9b1;
+  border-radius: 0.8rem;
+  background: #fff5f3;
+}
+.quick-cancellation label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 700;
+}
+.quick-cancellation input,
+.quick-cancellation button {
+  min-height: 2.65rem;
+  border: 1px solid #c99d95;
+  border-radius: 0.6rem;
+  font: inherit;
+}
+.quick-cancellation button {
+  background: #8a2518;
+  color: white;
+  font-weight: 800;
+}
+.cash-workspace {
+  grid-column: 1 / -1;
+  grid-row: 2 / -1;
+  min-height: calc(100vh - 66px);
+  padding: clamp(1rem, 3vw, 2rem);
+  overflow: auto;
+  background: #f4efe9;
+  color: #281911;
+}
+.cash-heading {
+  width: min(100%, 900px);
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.cash-heading h1 {
+  margin: 0.2rem 0;
+}
+.cash-heading p {
+  margin: 0;
+  color: #725e53;
+}
+.cash-summary {
+  width: min(100%, 900px);
+  margin: 0 auto 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem;
+}
+.cash-summary article,
+.cash-summary > p,
+.cash-summary-error {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #dfd2c7;
+  border-radius: 14px;
+  background: #fff;
+}
+.cash-summary article {
+  display: grid;
+  gap: 0.25rem;
+}
+.cash-summary article strong {
+  color: #5f2113;
+  font-size: 1.6rem;
+}
+.cash-summary article span,
+.cash-summary article small {
+  color: #725e53;
+}
+.cash-summary .expected-cash {
+  border-color: #c8926f;
+  background: #fff8f2;
+}
+.cash-summary-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #8a2518;
+}
+.cash-close-panel {
+  width: min(100%, 900px);
+  margin: 0 auto 1rem;
+  padding: 1rem;
+  border: 1px solid #d9c9bd;
+  border-radius: 16px;
+  background: #fff;
+}
+.cash-close-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+.cash-close-panel h2 {
+  margin: 0.15rem 0 0;
+}
+.close-inputs {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1.3fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+.close-inputs label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 750;
+}
+.close-inputs input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cdb9aa;
+  border-radius: 10px;
+  padding: 0 0.75rem;
+  background: #fff;
+  color: #281911;
+}
+.close-inputs > button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 1rem;
+  background: #5f2113;
+  color: #fff;
+  font-weight: 800;
+}
+.close-ready,
+.close-ready-message {
+  color: #245c2e;
+}
+.cash-difference {
+  margin: 0.9rem 0 0;
+}
+.close-blockers {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #fff0ed;
+  color: #8a2518;
+}
+.close-blockers ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+.close-ready-message {
+  margin: 0.85rem 0 0;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: #edf7ed;
+  font-weight: 750;
+}
+.close-ready-message p {
+  margin: 0 0 0.65rem;
+}
+.close-ready-message button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 1rem;
+  background: #245c2e;
+  color: #fff;
+  font-weight: 850;
+}
+.exceptional-close {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d8c8bb;
+}
+.exceptional-close h2 {
+  font-size: 1.1rem;
+}
+.exceptional-close label {
+  display: block;
+  margin: 0.7rem 0 0.35rem;
+  font-weight: 750;
+}
+.exceptional-close textarea {
+  width: 100%;
+}
+.exceptional-blockers {
+  color: #8a2518;
+  text-align: left;
+}
+.exceptional-confirm {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 0.8rem;
+  border: 0;
+  border-radius: 12px;
+  background: #8f321a;
+  color: #fff;
+  font-weight: 850;
+}
+.exceptional-evaluate {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 0.7rem;
+  border: 1px solid #8f321a;
+  border-radius: 12px;
+  background: #fff;
+  color: #8f321a;
+  font-weight: 850;
+}
+.cash-heading > button,
+.expense-state button {
+  min-height: 44px;
+  border: 1px solid #b99c89;
+  border-radius: 11px;
+  padding: 0 0.85rem;
+  background: #fff;
+  color: #66331f;
+  font-weight: 800;
+}
+.expense-form,
+.expense-state {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  border: 1px solid #e2d5ca;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(58, 33, 20, 0.08);
+}
+.expense-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+.expense-form label > span,
+.expense-form legend {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #3f2b21;
+  font-weight: 800;
+}
+.expense-form small {
+  color: #725e53;
+  font-weight: 600;
+}
+.expense-form label > span strong {
+  margin-left: 0.35rem;
+  color: #a12618;
+  font-size: 0.75rem;
+}
+.expense-form select,
+.expense-form input[type='text'],
+.expense-form textarea {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid #cdbbad;
+  border-radius: 11px;
+  padding: 0 0.75rem;
+  background: #fff;
+  color: #281911;
+  font: inherit;
+}
+.expense-form textarea {
+  min-height: 82px;
+  padding: 0.7rem;
+  resize: vertical;
+}
+.expense-form fieldset {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.expense-money {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cdbbad;
+  border-radius: 11px;
+  overflow: hidden;
+}
+.expense-money b {
+  padding-left: 0.8rem;
+  color: #7f301a;
+}
+.expense-money input[type='text'] {
+  border: 0;
+}
+.payment-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.payment-options label {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cdbbad;
+  border-radius: 11px;
+  background: #fff;
+  cursor: pointer;
+}
+.payment-options label.selected {
+  border-color: #8f321a;
+  background: #fff0e5;
+  color: #7f301a;
+}
+.payment-options input {
+  position: absolute;
+  opacity: 0;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.expense-submit {
+  min-height: 54px;
+  border: 0;
+  border-radius: 12px;
+  background: #8f321a;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 850;
+}
+.expense-submit:disabled {
+  opacity: 0.55;
+}
+.expense-state,
+.expense-message {
+  padding: 1rem;
+}
+.expense-message {
+  margin: 0;
+  border-radius: 10px;
+  font-weight: 750;
+}
+.expense-message.error {
+  background: #fff0ed;
+  color: #8a2518;
+}
+.expense-message.success {
+  background: #edf7ed;
+  color: #245c2e;
+}
+@media (max-width: 700px) {
+  .cash-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .expense-form {
+    grid-template-columns: 1fr;
+  }
+  .close-inputs {
+    grid-template-columns: 1fr;
+  }
+  .expense-form .wide {
+    grid-column: auto;
+  }
+}

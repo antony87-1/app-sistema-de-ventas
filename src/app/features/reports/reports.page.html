@@ -1,0 +1,131 @@
+<ion-content [fullscreen]="true">
+  <main class="reports-shell">
+    <header class="reports-header no-print">
+      <div>
+        <small>KANKACHOS VALERIANO</small>
+        <h1>Reportes por jornada</h1>
+      </div>
+      <button type="button" (click)="back()">Volver a atención</button>
+      <button type="button" (click)="mode.set(mode() === 'REPORTS' ? 'CORRECTIONS' : 'REPORTS')">
+        {{ mode() === 'REPORTS' ? 'Correcciones' : 'Ver reportes' }}
+      </button>
+    </header>
+
+    @if (mode() === 'CORRECTIONS') {
+      <app-economic-corrections />
+    } @else if (status() === 'FORBIDDEN') {
+      <section class="state">
+        <h2>Acceso restringido</h2>
+        <p>Solo el administrador puede consultar reportes.</p>
+      </section>
+    } @else if (status() === 'ERROR') {
+      <section class="state">
+        <p>No se pudieron cargar los reportes.</p>
+        <button type="button" (click)="initialize()">Reintentar</button>
+      </section>
+    } @else {
+      <section class="report-toolbar no-print">
+        <label
+          >Jornada<select [value]="selectedJourneyId()" (change)="load($any($event.target).value)">
+            @for (journey of journeys(); track journey.id) {
+              <option [value]="journey.id">
+                {{ journey.businessDate }} · {{ journey.state.toLowerCase() }}
+              </option>
+            }
+          </select></label
+        >
+        <button type="button" [disabled]="!report()" (click)="exportCsv()">Exportar CSV</button>
+        <button type="button" [disabled]="!report()" (click)="downloadPdf()">Descargar PDF</button>
+      </section>
+      @if (status() === 'LOADING') {
+        <section class="state"><p>Calculando reporte…</p></section>
+      } @else if (report(); as data) {
+        <article class="print-report">
+          <header>
+            <h2>Jornada {{ data.journey.businessDate }}</h2>
+            <p>Estado: {{ data.journey.state.toLowerCase() }}</p>
+          </header>
+          <section>
+            <h3>Reporte de caja</h3>
+            <div class="summary-grid">
+              <article>
+                <small>Efectivo inicial</small
+                ><strong>{{ formatSoles(data.initialCashCents) }}</strong>
+              </article>
+              <article>
+                <small>Efectivo esperado</small
+                ><strong>{{ formatSoles(data.expectedCashCents) }}</strong>
+              </article>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Método</th>
+                  <th>Ingresos</th>
+                  <th>Salidas</th>
+                  <th>Neto</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (method of data.cashMethods; track method.code) {
+                  <tr>
+                    <td>{{ method.name }}</td>
+                    <td>{{ formatSoles(method.inflowCents) }}</td>
+                    <td>{{ formatSoles(method.outflowCents) }}</td>
+                    <td>{{ formatSoles(method.netCents) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+          <section>
+            <h3>Ventas reconocidas</h3>
+            <div class="summary-grid">
+              @for (item of data.salesByType; track item.type) {
+                <article>
+                  <small>{{ typeLabel(item.type) }} · {{ item.operationCount }}</small
+                  ><strong>{{ formatSoles(item.totalCents) }}</strong>
+                </article>
+              }
+              <article>
+                <small>Ventas netas</small><strong>{{ formatSoles(data.netSalesCents) }}</strong>
+              </article>
+            </div>
+            <p class="corrections">
+              Originales {{ formatSoles(data.grossSalesCents) }} · Correcciones +{{
+                formatSoles(data.salesCorrectionAddsCents)
+              }}
+              / −{{ formatSoles(data.salesCorrectionSubtractsCents) }}
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Tipo</th>
+                  <th>Finalización UTC</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (operation of data.salesOperations; track operation.code) {
+                  <tr>
+                    <td>{{ operation.code }}</td>
+                    <td>{{ typeLabel(operation.type) }}</td>
+                    <td>{{ operation.finalizedAtUtc }}</td>
+                    <td>{{ formatSoles(operation.totalCents) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+          <p class="report-note">
+            Caja usa la jornada en que ocurrió cada cobro o gasto. Ventas usa la jornada de
+            finalización o entrega. Una operación se reconoce una sola vez.
+          </p>
+        </article>
+      } @else {
+        <section class="state"><p>Aún no existen jornadas para reportar.</p></section>
+      }
+    }
+  </main>
+</ion-content>

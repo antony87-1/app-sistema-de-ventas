@@ -1,0 +1,59 @@
+<section class="table-admin">
+  <header>
+    <div>
+      <small>ADMINISTRACIÓN</small>
+      <h1>Mesas del local</h1>
+    </div>
+    <button type="button" (click)="load()">Actualizar</button>
+  </header>
+  <form (submit)="$event.preventDefault(); save()">
+    <label
+      >Nombre<input
+        type="text"
+        maxlength="60"
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+        placeholder="Ejemplo: Mesa 6"
+    /></label>
+    <label
+      >Orden<input
+        type="number"
+        min="0"
+        [value]="order()"
+        (input)="order.set($any($event.target).value)"
+    /></label>
+    <button class="primary" type="submit" [disabled]="busy()">
+      {{ editingId() ? 'Guardar cambios' : 'Agregar mesa' }}
+    </button>
+    @if (editingId()) {
+      <button type="button" (click)="cancel()">Cancelar</button>
+    }
+  </form>
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="success" role="status">{{ message() }}</p>
+  }
+  <div class="table-list">
+    @for (table of tables(); track table.id) {
+      <article [class.inactive]="!table.active">
+        <div>
+          <strong>{{ table.name }}</strong
+          ><small>Orden {{ table.order }} · {{ table.openAccounts }} cuenta(s) abierta(s)</small>
+        </div>
+        <span>{{ table.active ? 'Activa' : 'Inactiva' }}</span>
+        <button type="button" (click)="edit(table)">Editar</button>
+        @if (table.active) {
+          <button
+            type="button"
+            [disabled]="table.openAccounts > 0 || busy()"
+            (click)="edit(table); save(false)"
+          >
+            Desactivar
+          </button>
+        }
+      </article>
+    }
+  </div>
+</section>

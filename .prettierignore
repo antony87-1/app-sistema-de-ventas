@@ -1,0 +1,4 @@
+.angular/
+android/app/src/main/assets/
+dist/
+node_modules/
