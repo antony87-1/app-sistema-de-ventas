@@ -6,11 +6,11 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-local%20y%20cifrado-003B57?logo=sqlite&logoColor=white)
 
-Aplicación Android de ventas, atención de mesas y control de caja desarrollada para **Kankachos Valeriano**, un negocio de venta de alimentos con conectividad a Internet limitada.
+Aplicación Android de ventas, atención de mesas y control de caja desarrollada para **Kankachos Valeriano**, un negocio de venta de alimentos preparados que funciona sin internet pero en un futuro poder integrar en la nube para una mayor visualizacion en tiempo real.
 
 El sistema centraliza la operación diaria en una tablet o celular: apertura de caja, ventas rápidas, cuentas de mesa, pedidos programados, cobros, gastos, cierres, reportes y auditoría. Está diseñado para funcionar localmente sin depender de un servidor.
 
-> **Estado:** proyecto en desarrollo activo. La operación principal está implementada; los respaldos administrativos y los gráficos estadísticos avanzados continúan en construcción.
+> **Estado:** proyecto en desarrollo. La operación principal está implementada; los respaldos administrativos y los gráficos estadísticos avanzados continúan en construcción.
 
 ## Problema que resuelve
 
@@ -37,7 +37,7 @@ Esta aplicación busca reducir esos riesgos mediante:
 | Pagos separados     | Selección de productos o cantidades específicas dentro de una cuenta                                        |
 | Pedidos programados | Cliente, fecha, recojo o domicilio, líneas personalizadas, adelantos, preparación, entrega y saldo          |
 | Gastos              | Categoría, método de pago, importe, concepto, observación y movimiento de caja                              |
-| Reportes            | Caja y ventas por jornada, exportación CSV y generación local de PDF                                        |
+| Reportes            | Caja y ventas por jornada, exportación CSV y generación local de PDF                                         |
 | Correcciones        | Movimientos compensatorios relacionados con el registro original y auditoría completa                       |
 | Estadísticas        | Modelo y contrato TDD definidos; gráficos por día, semana y mes pendientes de implementación                |
 | Respaldos           | Diseño aprobado; interfaz final de respaldo y restauración todavía pendiente                                |
