@@ -1,4 +1,4 @@
-# App Sistema de Ventas — Kankachos Valeriano
+# App Sistema de Ventas — Kankachos 
 
 ![Angular](https://img.shields.io/badge/Angular-21.2-DD0031?logo=angular&logoColor=white)
 ![Ionic](https://img.shields.io/badge/Ionic-8.8-3880FF?logo=ionic&logoColor=white)
