@@ -6,7 +6,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-local%20y%20cifrado-003B57?logo=sqlite&logoColor=white)
 
-Aplicación Android de ventas, atención de mesas y control de caja desarrollada para **Kankachos Valeriano**, un negocio de venta de alimentos preparados que funciona sin internet pero en un futuro poder integrar en la nube para una mayor visualizacion en tiempo real.
+Aplicación Android de ventas, atención de mesas y control de caja desarrollada para **Kankachos**, un negocio de venta de alimentos preparados que funciona sin internet pero en un futuro poder integrar en la nube para una mayor visualizacion en tiempo real.
 
 El sistema centraliza la operación diaria en una tablet o celular: apertura de caja, ventas rápidas, cuentas de mesa, pedidos programados, cobros, gastos, cierres, reportes y auditoría. Está diseñado para funcionar localmente sin depender de un servidor.
 
