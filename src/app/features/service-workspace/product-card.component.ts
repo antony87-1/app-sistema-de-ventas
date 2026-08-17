@@ -8,27 +8,48 @@ export interface ProductAvailabilityChangeRequest {
   readonly availability: ProductAvailability;
 }
 
+export interface ProductSelectionRequest {
+  readonly productId: string;
+  readonly quantity: number;
+}
+
 @Component({
   selector: 'app-product-card',
   standalone: true,
   imports: [StatusBadgeComponent],
   template: `<article class="product-shell">
-    <button
-      type="button"
-      class="product"
-      [disabled]="product.availability === 'AGOTADO'"
-      (click)="selected.emit(product.id)"
-    >
-      <span class="product-image" aria-hidden="true">🍽️</span
-      ><span class="product-copy"
-        ><strong>{{ product.name }}</strong
-        ><small>{{ product.description }}</small
-        ><b>{{ product.price }}</b></span
+    <div class="product-card" [class.selector-open]="selectorOpen">
+      <button
+        type="button"
+        class="product"
+        [disabled]="product.availability === 'AGOTADO'"
+        [attr.aria-expanded]="selectorOpen"
+        [attr.aria-label]="'Elegir cantidad de ' + product.name"
+        (click)="toggleSelector()"
       >
-      @if (product.availability === 'AGOTADO') {
-        <app-status-badge label="Agotado" icon="×" tone="danger" />
+        <span class="product-image" aria-hidden="true">🍽️</span
+        ><span class="product-copy"
+          ><strong>{{ product.name }}</strong
+          ><small>{{ product.description }}</small>
+          @if (!selectorOpen) {
+            <b>{{ product.price }}</b>
+          }
+        </span>
+        @if (product.availability === 'AGOTADO') {
+          <app-status-badge label="Agotado" icon="×" tone="danger" />
+        }
+      </button>
+      @if (selectorOpen && product.availability === 'DISPONIBLE') {
+        <div class="quantity-selector" aria-label="Cantidad a agregar">
+          <div>
+            <button type="button" aria-label="Quitar uno" (click)="decrease()">−</button>
+            <strong aria-live="polite">{{ quantity }}</strong>
+            <button type="button" aria-label="Agregar uno" (click)="increase()">+</button>
+          </div>
+          <button type="button" class="add-action" (click)="confirmSelection()">Agregar</button>
+        </div>
       }
-    </button>
+    </div>
     <button
       type="button"
       class="availability-action"
@@ -46,19 +67,27 @@ export interface ProductAvailabilityChangeRequest {
   </article>`,
   styles: [
     `
-      .product {
+      .product-card {
         position: relative;
         width: 100%;
         min-height: 122px;
-        text-align: left;
         border: 1px solid #eadbc9;
         border-radius: 16px;
         background: #fff;
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(79, 42, 22, 0.06);
+      }
+      .product {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
         padding: 0.7rem;
         display: flex;
         gap: 0.7rem;
         color: #2c1a13;
-        box-shadow: 0 4px 14px rgba(79, 42, 22, 0.06);
       }
       .product-shell {
         display: flex;
@@ -72,6 +101,9 @@ export interface ProductAvailabilityChangeRequest {
       .product:disabled {
         opacity: 0.66;
         background: #f4efea;
+      }
+      .selector-open .product {
+        padding-bottom: 4.25rem;
       }
       .product-image {
         display: grid;
@@ -115,15 +147,65 @@ export interface ProductAvailabilityChangeRequest {
       .availability-action:disabled {
         opacity: 0.6;
       }
+      .quantity-selector {
+        position: absolute;
+        right: 0.55rem;
+        bottom: 0.5rem;
+        left: 0.55rem;
+        z-index: 2;
+        display: grid;
+        gap: 0.25rem;
+      }
+      .quantity-selector > div {
+        display: grid;
+        grid-template-columns: 32px 1fr 32px;
+        align-items: center;
+        text-align: center;
+      }
+      .quantity-selector button {
+        min-height: 28px;
+        border: 1px solid #d3b9a4;
+        border-radius: 8px;
+        background: #fffaf5;
+        color: #71351f;
+        font-weight: 900;
+      }
+      .quantity-selector .add-action {
+        min-height: 29px;
+        border-color: #8f321a;
+        background: #8f321a;
+        color: #fff;
+      }
     `,
   ],
 })
 export class ProductCardComponent {
   @Input({ required: true }) product!: ProductPreview;
   @Input() availabilityBusy = false;
-  @Output() readonly selected = new EventEmitter<string>();
+  @Output() readonly selected = new EventEmitter<ProductSelectionRequest>();
   @Output() readonly availabilityChangeRequested =
     new EventEmitter<ProductAvailabilityChangeRequest>();
+  selectorOpen = false;
+  quantity = 1;
+
+  toggleSelector(): void {
+    if (this.product.availability === 'AGOTADO') return;
+    this.selectorOpen = !this.selectorOpen;
+  }
+
+  decrease(): void {
+    this.quantity = Math.max(1, this.quantity - 1);
+  }
+
+  increase(): void {
+    this.quantity = Math.min(99, this.quantity + 1);
+  }
+
+  confirmSelection(): void {
+    this.selected.emit({ productId: this.product.id, quantity: this.quantity });
+    this.quantity = 1;
+    this.selectorOpen = false;
+  }
 
   requestAvailabilityChange(): void {
     this.availabilityChangeRequested.emit({

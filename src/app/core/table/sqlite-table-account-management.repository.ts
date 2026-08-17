@@ -39,6 +39,7 @@ export class SqliteTableAccountManagementRepository implements TableAccountManag
         `SELECT d.id,d.producto_id,d.detalle_principal_id,d.producto_nombre_snapshot,d.cantidad_total,
                 d.cantidad_servida,d.cantidad_pagada,d.precio_catalogo_unitario_centimos,
                 d.precio_aplicado_unitario_centimos,d.subtotal_centimos,d.estado_servicio,
+                d.tipo_ajuste_precio,d.motivo_ajuste_precio,
                 p.permite_adicionales,p.permite_modificar_precio
            FROM operacion_detalles d JOIN productos p ON p.id=d.producto_id
           WHERE d.operacion_id=? ORDER BY d.agregado_en_utc,d.id;`,
@@ -67,6 +68,13 @@ export class SqliteTableAccountManagementRepository implements TableAccountManag
         catalogUnitPriceCents: integer(row, 'precio_catalogo_unitario_centimos'),
         allowsAddons: integer(row, 'permite_adicionales') === 1,
         allowsPriceChange: integer(row, 'permite_modificar_precio') === 1,
+        priceAdjustment:
+          row['tipo_ajuste_precio'] === 'NINGUNO'
+            ? null
+            : {
+                type: text(row, 'tipo_ajuste_precio') as 'DESCUENTO' | 'PRECIO_PERSONALIZADO',
+                reason: text(row, 'motivo_ajuste_precio'),
+              },
         addons: children.get(text(row, 'id')) ?? [],
       }));
     const row = operations[0];
@@ -151,6 +159,51 @@ export class SqliteTableAccountManagementRepository implements TableAccountManag
           `UPDATE operacion_detalles SET cantidad_total=?,subtotal_centimos=?*precio_aplicado_unitario_centimos WHERE id=?;`,
           [command.targetQuantity!, command.targetQuantity!, command.detailId!],
         );
+      await this.recalculate(command.operationId);
+    });
+  }
+  changePrice(command: TableAccountMutationCommand): Promise<TableAccountSnapshot> {
+    return this.mutate(command, 'CAMBIAR_PRECIO_CUENTA', async () => {
+      await this.assertEditable(command.operationId);
+      const rows = await this.database.query(
+        `SELECT d.cantidad_total,d.cantidad_servida,d.cantidad_pagada,
+                d.precio_catalogo_unitario_centimos,p.permite_modificar_precio
+           FROM operacion_detalles d JOIN productos p ON p.id=d.producto_id
+          WHERE d.id=? AND d.operacion_id=? AND d.detalle_principal_id IS NULL LIMIT 1;`,
+        [command.detailId!, command.operationId],
+      );
+      if (
+        !rows.length ||
+        integer(rows[0], 'cantidad_servida') > 0 ||
+        integer(rows[0], 'cantidad_pagada') > 0 ||
+        integer(rows[0], 'permite_modificar_precio') !== 1
+      )
+        throw new TableDetailLockedError();
+
+      const catalogPrice = integer(rows[0], 'precio_catalogo_unitario_centimos');
+      const quantity = integer(rows[0], 'cantidad_total');
+      const adjustment = command.priceAdjustment ?? null;
+      const appliedPrice = adjustment?.appliedPriceCents ?? catalogPrice;
+      if (
+        (adjustment?.type === 'DESCUENTO' && appliedPrice >= catalogPrice) ||
+        (adjustment?.type === 'PRECIO_PERSONALIZADO' && appliedPrice === catalogPrice)
+      )
+        throw new TableDetailLockedError();
+
+      await this.database.run(
+        `UPDATE operacion_detalles
+            SET precio_aplicado_unitario_centimos=?,tipo_ajuste_precio=?,
+                motivo_ajuste_precio=?,ajustado_por_usuario_id=?,subtotal_centimos=?
+          WHERE id=?;`,
+        [
+          appliedPrice,
+          adjustment?.type ?? 'NINGUNO',
+          adjustment?.reason ?? null,
+          adjustment ? command.actorUserId : null,
+          quantity * appliedPrice,
+          command.detailId!,
+        ],
+      );
       await this.recalculate(command.operationId);
     });
   }
@@ -414,6 +467,7 @@ function fingerprint(command: TableAccountMutationCommand) {
     targetQuantity: command.targetQuantity ?? null,
     tableId: command.tableId ?? null,
     addonProductId: command.addonProductId ?? null,
+    priceAdjustment: command.priceAdjustment ?? null,
     lines: command.lines ?? null,
     actorUserId: command.actorUserId,
   };

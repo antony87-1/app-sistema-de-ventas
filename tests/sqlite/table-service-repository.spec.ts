@@ -126,6 +126,37 @@ describe('SQLite table service repositories', () => {
     ).toEqual([]);
   });
 
+  it('edits and restores the justified price of a pending account line', async () => {
+    await accountRepository.open(command('account', 'op-1', 'CM-1'));
+    await managementRepository.add(addCommand(db, 'add-1'));
+
+    const adjusted = await managementRepository.changePrice(
+      mutation('price-1', {
+        detailId: 'detail-main',
+        priceAdjustment: {
+          type: 'DESCUENTO',
+          appliedPriceCents: 1800,
+          reason: 'Promoción del día',
+        },
+      }),
+    );
+    expect(adjusted.totalCents).toBe(2000);
+    expect(adjusted.lines[0]).toEqual(
+      expect.objectContaining({
+        unitPriceCents: 1800,
+        subtotalCents: 1800,
+        priceAdjustment: { type: 'DESCUENTO', reason: 'Promoción del día' },
+      }),
+    );
+
+    const restored = await managementRepository.changePrice(
+      mutation('price-2', { detailId: 'detail-main', priceAdjustment: null }),
+    );
+    expect(restored.totalCents).toBe(2200);
+    expect(restored.lines[0].priceAdjustment).toBeNull();
+    expect(restored.lines[0].unitPriceCents).toBe(2000);
+  });
+
   it('marks the principal and its addons served and locks later quantity editing', async () => {
     await accountRepository.open(command('account', 'op-1', 'CM-1'));
     await managementRepository.add(addCommand(db, 'add-1'));

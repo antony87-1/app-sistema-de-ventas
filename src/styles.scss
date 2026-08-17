@@ -467,3 +467,64 @@
     grid-column: auto;
   }
 }
+
+app-service-workspace .quick-price-editor {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border-bottom: 1px solid #dfc4ad;
+  background: #fff8ef;
+  color: #281911;
+}
+app-service-workspace .quick-price-editor > div {
+  display: flex;
+  gap: 0.4rem;
+}
+app-service-workspace .quick-price-editor button {
+  min-height: 34px;
+  border: 1px solid #c9aa93;
+  border-radius: 9px;
+  background: #fff;
+  padding: 0 0.65rem;
+  color: #71351f;
+  font-weight: 800;
+}
+app-service-workspace .quick-price-editor button.active,
+app-service-workspace .quick-price-editor button.confirm {
+  border-color: #8f321a;
+  background: #8f321a;
+  color: #fff;
+}
+app-service-workspace .quick-price-editor label {
+  display: grid;
+  gap: 0.25rem;
+  color: #725e53;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+app-service-workspace .quick-price-editor input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #ccb8a8;
+  border-radius: 9px;
+  background: #fff;
+  padding: 0 0.55rem;
+  color: #281911;
+  font: inherit;
+}
+app-service-workspace .inline-price-editor {
+  grid-column: 1 / -1;
+  margin-top: 0.2rem;
+  border: 1px solid #dfc4ad;
+  border-radius: 11px;
+}
+app-service-workspace .inline-price-editor .price-editor-actions {
+  justify-content: flex-end;
+}
+app-service-workspace .line-actions .price-edit {
+  min-width: auto;
+  min-height: 30px;
+  border-radius: 8px;
+  padding: 0 0.48rem;
+  font-size: 0.72rem;
+}

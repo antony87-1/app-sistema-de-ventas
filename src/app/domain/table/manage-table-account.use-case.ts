@@ -1,6 +1,9 @@
 import type { AuthenticatedIdentity } from '../auth/authenticate-user.use-case';
 import { AuthorizationPolicy } from '../auth/authorization-policy';
-import type { QuickSaleLineInput } from '../sale/create-quick-sale.use-case';
+import type {
+  QuickSaleLineInput,
+  QuickSalePriceAdjustmentInput,
+} from '../sale/create-quick-sale.use-case';
 
 export interface TableAccountAddonLine {
   readonly detailId: string;
@@ -17,6 +20,10 @@ export interface TableAccountLine extends TableAccountAddonLine {
   readonly catalogUnitPriceCents: number;
   readonly allowsAddons: boolean;
   readonly allowsPriceChange: boolean;
+  readonly priceAdjustment: {
+    readonly type: 'DESCUENTO' | 'PRECIO_PERSONALIZADO';
+    readonly reason: string;
+  } | null;
   readonly addons: readonly TableAccountAddonLine[];
 }
 export interface TableAccountSnapshot {
@@ -37,6 +44,7 @@ export interface TableAccountMutationCommand {
   readonly targetQuantity?: number;
   readonly tableId?: string;
   readonly addonProductId?: string;
+  readonly priceAdjustment?: QuickSalePriceAdjustmentInput | null;
   readonly lines?: readonly QuickSaleLineInput[];
   readonly generatedDetailIds?: readonly { principalId: string; addonIds: readonly string[] }[];
   readonly requestKey: string;
@@ -48,6 +56,7 @@ export interface TableAccountManagementRepository {
   add(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
   addAddon(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
   changeQuantity(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
+  changePrice(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
   markServed(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
   linkTable(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
   unlinkTable(command: TableAccountMutationCommand): Promise<TableAccountSnapshot>;
@@ -136,6 +145,35 @@ export class ManageTableAccountUseCase {
       throw new InvalidTableAccountMutationError();
     return this.repository.changeQuantity(
       this.command(operationId, requestKey, actor, { detailId, targetQuantity }),
+    );
+  }
+  changePrice(
+    operationId: string,
+    detailId: string,
+    adjustment: QuickSalePriceAdjustmentInput | null,
+    requestKey: string,
+    actor: AuthenticatedIdentity,
+  ): Promise<TableAccountSnapshot> {
+    this.authorization.assertCan(actor.role, 'MODIFICAR_PRECIO_OPERACION');
+    if (adjustment?.type === 'DESCUENTO')
+      this.authorization.assertCan(actor.role, 'APLICAR_DESCUENTO');
+    if (
+      !detailId.trim() ||
+      (adjustment !== null &&
+        adjustment.type !== 'DESCUENTO' &&
+        adjustment.type !== 'PRECIO_PERSONALIZADO') ||
+      (adjustment !== null &&
+        (!Number.isSafeInteger(adjustment.appliedPriceCents) ||
+          adjustment.appliedPriceCents < 0 ||
+          adjustment.reason.trim().length === 0))
+    )
+      throw new InvalidTableAccountMutationError();
+    return this.repository.changePrice(
+      this.command(operationId, requestKey, actor, {
+        detailId,
+        priceAdjustment:
+          adjustment === null ? null : { ...adjustment, reason: adjustment.reason.trim() },
+      }),
     );
   }
   markServed(

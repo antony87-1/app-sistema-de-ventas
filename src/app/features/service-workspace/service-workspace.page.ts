@@ -3,7 +3,10 @@ import { Router } from '@angular/router';
 import { IonButton, IonContent, IonSearchbar } from '@ionic/angular/standalone';
 import { LocalSaveIndicatorComponent } from './local-save-indicator.component';
 import { ProductCardComponent } from './product-card.component';
-import type { ProductAvailabilityChangeRequest } from './product-card.component';
+import type {
+  ProductAvailabilityChangeRequest,
+  ProductSelectionRequest,
+} from './product-card.component';
 import { StatusBadgeComponent } from './status-badge.component';
 import { TableCardComponent } from './table-card.component';
 import { ProductPreview, TablePreview } from './workspace.models';
@@ -27,7 +30,10 @@ import type { ReopenCandidate } from '../../domain/journey/reopen-journey.use-ca
 import type { SaleCatalogAddon } from '../../domain/catalog/list-sale-catalog.use-case';
 import type { PendingQuickSale } from '../../domain/sale/list-pending-quick-sales.use-case';
 import type { QuickSaleHistoryItem } from '../../domain/sale/list-quick-sale-history.use-case';
-import type { TableAccountSnapshot } from '../../domain/table/manage-table-account.use-case';
+import type {
+  TableAccountLine,
+  TableAccountSnapshot,
+} from '../../domain/table/manage-table-account.use-case';
 import { SessionService } from '../../core/auth/session.service';
 import { AuthorizationPolicy } from '../../domain/auth/authorization-policy';
 import { TableAdministrationComponent } from '../table-administration/table-administration.component';
@@ -160,6 +166,10 @@ export class ServiceWorkspacePage implements OnInit {
   readonly tableAccountError = signal('');
   readonly tableAccount = signal<TableAccountSnapshot | null>(null);
   readonly tableMutationBusy = signal(false);
+  readonly tablePriceTarget = signal<string | null>(null);
+  readonly tablePriceType = signal<'DESCUENTO' | 'PRECIO_PERSONALIZADO'>('DESCUENTO');
+  readonly tableAppliedPriceSoles = signal('');
+  readonly tablePriceReason = signal('');
   readonly tablePaymentSelection = signal<Readonly<Record<string, number>>>({});
   readonly tablePaymentMethod = signal<'EFECTIVO' | 'YAPE' | 'COMBINADO'>('EFECTIVO');
   readonly tableCashReceivedSoles = signal('');
@@ -402,7 +412,8 @@ export class ServiceWorkspacePage implements OnInit {
     }
   }
 
-  async addProductToTableAccount(productId: string): Promise<void> {
+  async addProductToTableAccount(productId: string, quantity = 1): Promise<void> {
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return;
     const operationId = this.selectedTableAccountId();
     const product = this.products().find(
       (item) => item.id === productId && item.availability === 'DISPONIBLE',
@@ -411,14 +422,15 @@ export class ServiceWorkspacePage implements OnInit {
     await this.runTableMutation(() =>
       this.tableServiceFacade.addToAccount(
         operationId,
-        [{ productId, quantity: 1 }],
+        [{ productId, quantity }],
         this.tableMutationRequestKey,
       ),
     );
   }
-  addProductToDestination(productId: string): void {
-    if (this.serviceDestination() === 'QUICK_SALE') this.addProductToQuickSale(productId);
-    else void this.addProductToTableAccount(productId);
+  addProductToDestination(selection: ProductSelectionRequest): void {
+    if (this.serviceDestination() === 'QUICK_SALE')
+      this.addProductToQuickSale(selection.productId, selection.quantity);
+    else void this.addProductToTableAccount(selection.productId, selection.quantity);
   }
   async addAddonToTableLine(detailId: string, addon: SaleCatalogAddon): Promise<void> {
     const operationId = this.selectedTableAccountId();
@@ -443,6 +455,62 @@ export class ServiceWorkspacePage implements OnInit {
         this.tableMutationRequestKey,
       ),
     );
+  }
+  selectTablePriceTarget(line: TableAccountLine): void {
+    if (
+      !line.allowsPriceChange ||
+      line.serviceState !== 'PENDIENTE' ||
+      line.paidQuantity > 0 ||
+      this.tableMutationBusy()
+    )
+      return;
+    this.tablePriceTarget.set(line.detailId);
+    this.tableAppliedPriceSoles.set((line.unitPriceCents / 100).toFixed(2));
+    this.tablePriceReason.set(line.priceAdjustment?.reason ?? '');
+    this.tablePriceType.set(line.priceAdjustment?.type ?? 'DESCUENTO');
+    this.tableAccountError.set('');
+  }
+  async applyTablePriceAdjustment(): Promise<void> {
+    const detailId = this.tablePriceTarget();
+    const line = this.tableAccount()?.lines.find((item) => item.detailId === detailId);
+    const appliedPriceCents = parseSolesToCents(this.tableAppliedPriceSoles());
+    const reason = this.tablePriceReason().trim();
+    const type = this.tablePriceType();
+    if (
+      !detailId ||
+      !line ||
+      appliedPriceCents === null ||
+      reason.length === 0 ||
+      (type === 'DESCUENTO' && appliedPriceCents >= line.catalogUnitPriceCents) ||
+      (type === 'PRECIO_PERSONALIZADO' && appliedPriceCents === line.catalogUnitPriceCents)
+    ) {
+      this.tableAccountError.set('Ingresa un precio válido y el motivo del ajuste.');
+      return;
+    }
+    const operationId = this.selectedTableAccountId();
+    if (!operationId) return;
+    await this.runTableMutation(() =>
+      this.tableServiceFacade.changeAccountPrice(
+        operationId,
+        detailId,
+        { type, appliedPriceCents, reason },
+        this.tableMutationRequestKey,
+      ),
+    );
+    if (!this.tableAccountError()) this.tablePriceTarget.set(null);
+  }
+  async removeTablePriceAdjustment(detailId: string): Promise<void> {
+    const operationId = this.selectedTableAccountId();
+    if (!operationId) return;
+    await this.runTableMutation(() =>
+      this.tableServiceFacade.changeAccountPrice(
+        operationId,
+        detailId,
+        null,
+        this.tableMutationRequestKey,
+      ),
+    );
+    if (!this.tableAccountError()) this.tablePriceTarget.set(null);
   }
   async markTableLineServed(detailId: string): Promise<void> {
     const operationId = this.selectedTableAccountId();
@@ -475,6 +543,7 @@ export class ServiceWorkspacePage implements OnInit {
     this.selectedTableAccountId.set(operationId);
     this.selectedAccountLabel.set(label);
     this.tablePaymentSelection.set({});
+    this.tablePriceTarget.set(null);
     this.tablePaymentFeedback.set('');
     void this.loadTableAccount(operationId);
   }
@@ -996,7 +1065,8 @@ export class ServiceWorkspacePage implements OnInit {
     this.mobileView.set('MESAS');
   }
 
-  addProductToQuickSale(productId: string): void {
+  addProductToQuickSale(productId: string, quantity = 1): void {
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return;
     if (this.serviceDestination() !== 'QUICK_SALE' || this.persistedQuickSaleCode()) return;
     const product = this.products().find(
       (item) => item.id === productId && item.availability === 'DISPONIBLE',
@@ -1004,7 +1074,7 @@ export class ServiceWorkspacePage implements OnInit {
     if (!product) return;
     const existing = this.quickSaleLines().find((line) => line.productId === productId);
     if (existing) {
-      this.changeQuickSaleQuantity(existing.draftId, 1);
+      this.changeQuickSaleQuantity(existing.draftId, quantity);
       return;
     }
     this.quickSaleDraftSequence += 1;
@@ -1018,7 +1088,7 @@ export class ServiceWorkspacePage implements OnInit {
         catalogPriceCents: product.priceCents,
         allowsAddons: product.allowsAddons,
         allowsPriceChange: product.allowsPriceChange,
-        quantity: 1,
+        quantity,
         addons: [],
         priceAdjustment: null,
       },
@@ -1321,6 +1391,7 @@ export class ServiceWorkspacePage implements OnInit {
     this.selectedTableAccountId.set(account?.operationId ?? '');
     this.selectedAccountLabel.set(account?.label ?? '');
     this.tableAccountError.set('');
+    this.tablePriceTarget.set(null);
     if (account) void this.loadTableAccount(account.operationId);
     else this.tableAccount.set(null);
     this.mobileView.set('CUENTA');

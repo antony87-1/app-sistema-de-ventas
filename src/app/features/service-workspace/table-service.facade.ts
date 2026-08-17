@@ -23,7 +23,10 @@ import {
   type TableAccountManagementRepository,
   type TableAccountSnapshot,
 } from '../../domain/table/manage-table-account.use-case';
-import type { QuickSaleLineInput } from '../../domain/sale/create-quick-sale.use-case';
+import type {
+  QuickSaleLineInput,
+  QuickSalePriceAdjustmentInput,
+} from '../../domain/sale/create-quick-sale.use-case';
 import type { QuickSalePaymentInput } from '../../domain/sale/finalize-quick-sale.use-case';
 import {
   FinalizeTableAttentionUseCase,
@@ -58,6 +61,12 @@ export interface TableServiceFacadePort {
     operationId: string,
     detailId: string,
     target: number,
+    key: string,
+  ): Promise<TableAccountSnapshot>;
+  changeAccountPrice(
+    operationId: string,
+    detailId: string,
+    adjustment: QuickSalePriceAdjustmentInput | null,
     key: string,
   ): Promise<TableAccountSnapshot>;
   markAccountLineServed(
@@ -141,6 +150,16 @@ export class TableServiceFacade implements TableServiceFacadePort {
     await this.connection.initialize();
     const actor = this.requireActor();
     return this.manager().changeQuantity(operationId, detailId, target, key, actor);
+  }
+  async changeAccountPrice(
+    operationId: string,
+    detailId: string,
+    adjustment: QuickSalePriceAdjustmentInput | null,
+    key: string,
+  ) {
+    await this.connection.initialize();
+    const actor = this.requireActor();
+    return this.manager().changePrice(operationId, detailId, adjustment, key, actor);
   }
   async markAccountLineServed(operationId: string, detailId: string, key: string) {
     await this.connection.initialize();

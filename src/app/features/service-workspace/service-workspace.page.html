@@ -732,10 +732,10 @@
                   @if (line.allowsPriceChange) {
                     <button
                       type="button"
-                      class="text"
+                      class="text price-edit"
                       (click)="selectQuickSalePriceTarget(line.draftId)"
                     >
-                      Editar precio
+                      Editar S/
                     </button>
                   }
                   @if (line.priceAdjustment) {
@@ -945,10 +945,13 @@
                 <article>
                   <div>
                     <strong>{{ line.name }} × {{ line.quantity }}</strong
-                    ><small
-                      >{{ line.serviceState === 'SERVIDO' ? 'Servido' : 'Pendiente de servir' }} ·
-                      {{ line.paidQuantity }} pagados</small
-                    >
+                    ><small>
+                      {{ line.serviceState === 'SERVIDO' ? 'Servido' : 'Pendiente de servir' }} ·
+                      {{ line.paidQuantity }} pagados · {{ formatSoles(line.unitPriceCents) }} c/u
+                      @if (line.priceAdjustment) {
+                        · {{ line.priceAdjustment.reason }}
+                      }
+                    </small>
                   </div>
                   <b>{{ formatSoles(line.subtotalCents) }}</b>
                   @for (addon of line.addons; track addon.detailId) {
@@ -982,7 +985,82 @@
                       >
                         Marcar servido
                       </button>
+                      @if (line.allowsPriceChange) {
+                        <button
+                          type="button"
+                          class="text price-edit"
+                          [disabled]="tableMutationBusy()"
+                          (click)="selectTablePriceTarget(line)"
+                        >
+                          Editar S/
+                        </button>
+                      }
+                      @if (line.priceAdjustment) {
+                        <button
+                          type="button"
+                          class="text price-edit"
+                          [disabled]="tableMutationBusy()"
+                          (click)="removeTablePriceAdjustment(line.detailId)"
+                        >
+                          Precio original
+                        </button>
+                      }
                     </div>
+                    @if (tablePriceTarget() === line.detailId) {
+                      <section
+                        class="quick-price-editor inline-price-editor"
+                        aria-label="Editar precio"
+                      >
+                        <div>
+                          <button
+                            type="button"
+                            [class.active]="tablePriceType() === 'DESCUENTO'"
+                            (click)="tablePriceType.set('DESCUENTO')"
+                          >
+                            Descuento
+                          </button>
+                          <button
+                            type="button"
+                            [class.active]="tablePriceType() === 'PRECIO_PERSONALIZADO'"
+                            (click)="tablePriceType.set('PRECIO_PERSONALIZADO')"
+                          >
+                            Precio personalizado
+                          </button>
+                        </div>
+                        <label>
+                          Nuevo precio unitario
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            [value]="tableAppliedPriceSoles()"
+                            (input)="tableAppliedPriceSoles.set($any($event.target).value)"
+                          />
+                        </label>
+                        <label>
+                          Motivo obligatorio
+                          <input
+                            type="text"
+                            maxlength="200"
+                            [value]="tablePriceReason()"
+                            (input)="tablePriceReason.set($any($event.target).value)"
+                          />
+                        </label>
+                        <div class="price-editor-actions">
+                          <button type="button" class="cancel" (click)="tablePriceTarget.set(null)">
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            class="confirm"
+                            [disabled]="tableMutationBusy()"
+                            (click)="applyTablePriceAdjustment()"
+                          >
+                            {{ tableMutationBusy() ? 'Guardando…' : 'Aplicar' }}
+                          </button>
+                        </div>
+                      </section>
+                    }
                     @if (line.allowsAddons) {
                       <div class="quick-addon-panel">
                         @for (addon of catalogAddons(); track addon.id) {
